@@ -1,0 +1,458 @@
+{
+  "api-gateway": {
+    "name": "API Gateway",
+    "port": 8000,
+    "description": "Central API gateway and routing",
+    "documentationUrl": "http://localhost:8000/api/docs",
+    "healthCheckUrl": "http://localhost:8000/health",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/auth/login",
+        "description": "User authentication",
+        "url": "http://localhost:8000/api/auth/login"
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/register",
+        "description": "User registration",
+        "url": "http://localhost:8000/api/auth/register"
+      },
+      {
+        "method": "GET",
+        "path": "/api/contests",
+        "description": "List contests",
+        "url": "http://localhost:8000/api/contests"
+      },
+      {
+        "method": "POST",
+        "path": "/api/contests",
+        "description": "Create contest",
+        "url": "http://localhost:8000/api/contests"
+      },
+      {
+        "method": "GET",
+        "path": "/api/contests/:id",
+        "description": "Get contest details",
+        "url": "http://localhost:8000/api/contests/:id"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/contests/:id",
+        "description": "Update contest",
+        "url": "http://localhost:8000/api/contests/:id"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/contests/:id",
+        "description": "Delete contest",
+        "url": "http://localhost:8000/api/contests/:id"
+      },
+      {
+        "method": "GET",
+        "path": "/api/contests/:id/submissions",
+        "description": "Get contest submissions",
+        "url": "http://localhost:8000/api/contests/:id/submissions"
+      },
+      {
+        "method": "POST",
+        "path": "/api/contests/:id/submit",
+        "description": "Submit to contest",
+        "url": "http://localhost:8000/api/contests/:id/submit"
+      }
+    ]
+  },
+  "algorithm-engine": {
+    "name": "Algorithm Engine",
+    "port": 8001,
+    "description": "NLP scoring and content analysis",
+    "documentationUrl": "http://localhost:8001/api/docs",
+    "healthCheckUrl": "http://localhost:8001/health",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/scoring/score",
+        "description": "Score single submission",
+        "url": "http://localhost:8001/api/scoring/score"
+      },
+      {
+        "method": "POST",
+        "path": "/api/scoring/batch-score",
+        "description": "Batch score submissions",
+        "url": "http://localhost:8001/api/scoring/batch-score"
+      },
+      {
+        "method": "GET",
+        "path": "/api/scoring/score/:id",
+        "description": "Get cached score",
+        "url": "http://localhost:8001/api/scoring/score/:id"
+      },
+      {
+        "method": "POST",
+        "path": "/api/scoring/recalculate/:id",
+        "description": "Recalculate score",
+        "url": "http://localhost:8001/api/scoring/recalculate/:id"
+      },
+      {
+        "method": "GET",
+        "path": "/api/scoring/metrics",
+        "description": "Get scoring metrics",
+        "url": "http://localhost:8001/api/scoring/metrics"
+      },
+      {
+        "method": "GET",
+        "path": "/api/scoring/configuration",
+        "description": "Get scoring config",
+        "url": "http://localhost:8001/api/scoring/configuration"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/scoring/configuration",
+        "description": "Update scoring config",
+        "url": "http://localhost:8001/api/scoring/configuration"
+      },
+      {
+        "method": "GET",
+        "path": "/api/scoring/models/status",
+        "description": "Get model status",
+        "url": "http://localhost:8001/api/scoring/models/status"
+      },
+      {
+        "method": "POST",
+        "path": "/api/scoring/models/train",
+        "description": "Train models",
+        "url": "http://localhost:8001/api/scoring/models/train"
+      },
+      {
+        "method": "GET",
+        "path": "/api/scoring/queue/status",
+        "description": "Get queue status",
+        "url": "http://localhost:8001/api/scoring/queue/status"
+      }
+    ]
+  },
+  "voting-engine": {
+    "name": "Voting Engine",
+    "port": 8002,
+    "description": "Blockchain voting and sybil detection",
+    "documentationUrl": "http://localhost:8002/api/docs",
+    "healthCheckUrl": "http://localhost:8002/health",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/voting/commit",
+        "description": "Commit vote",
+        "url": "http://localhost:8002/api/voting/commit"
+      },
+      {
+        "method": "POST",
+        "path": "/api/voting/reveal",
+        "description": "Reveal vote",
+        "url": "http://localhost:8002/api/voting/reveal"
+      },
+      {
+        "method": "GET",
+        "path": "/api/voting/rounds/:id",
+        "description": "Get voting round",
+        "url": "http://localhost:8002/api/voting/rounds/:id"
+      },
+      {
+        "method": "GET",
+        "path": "/api/voting/results/:id",
+        "description": "Get voting results",
+        "url": "http://localhost:8002/api/voting/results/:id"
+      },
+      {
+        "method": "POST",
+        "path": "/api/voting/sybil-check",
+        "description": "Check for sybil attacks",
+        "url": "http://localhost:8002/api/voting/sybil-check"
+      },
+      {
+        "method": "GET",
+        "path": "/api/voting/nft/:tokenId",
+        "description": "Get voting NFT details",
+        "url": "http://localhost:8002/api/voting/nft/:tokenId"
+      },
+      {
+        "method": "POST",
+        "path": "/api/voting/nft/mint",
+        "description": "Mint voting NFT",
+        "url": "http://localhost:8002/api/voting/nft/mint"
+      },
+      {
+        "method": "GET",
+        "path": "/api/voting/stake/:address",
+        "description": "Get staking info",
+        "url": "http://localhost:8002/api/voting/stake/:address"
+      }
+    ]
+  },
+  "notification-service": {
+    "name": "Notification Service",
+    "port": 8003,
+    "description": "Real-time notifications",
+    "documentationUrl": "http://localhost:8003/api/docs",
+    "healthCheckUrl": "http://localhost:8003/health",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/api/notifications",
+        "description": "Get user notifications",
+        "url": "http://localhost:8003/api/notifications"
+      },
+      {
+        "method": "POST",
+        "path": "/api/notifications/mark-read",
+        "description": "Mark notifications as read",
+        "url": "http://localhost:8003/api/notifications/mark-read"
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/settings",
+        "description": "Get notification settings",
+        "url": "http://localhost:8003/api/notifications/settings"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/notifications/settings",
+        "description": "Update notification settings",
+        "url": "http://localhost:8003/api/notifications/settings"
+      },
+      {
+        "method": "POST",
+        "path": "/api/notifications/send",
+        "description": "Send notification",
+        "url": "http://localhost:8003/api/notifications/send"
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/templates",
+        "description": "Get notification templates",
+        "url": "http://localhost:8003/api/notifications/templates"
+      },
+      {
+        "method": "POST",
+        "path": "/api/notifications/templates",
+        "description": "Create notification template",
+        "url": "http://localhost:8003/api/notifications/templates"
+      }
+    ]
+  },
+  "dispute-service": {
+    "name": "Dispute Service",
+    "port": 8004,
+    "description": "Dispute management and resolution",
+    "documentationUrl": "http://localhost:8004/api/docs",
+    "healthCheckUrl": "http://localhost:8004/health",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/disputes",
+        "description": "Create dispute",
+        "url": "http://localhost:8004/api/disputes"
+      },
+      {
+        "method": "GET",
+        "path": "/api/disputes",
+        "description": "List disputes",
+        "url": "http://localhost:8004/api/disputes"
+      },
+      {
+        "method": "GET",
+        "path": "/api/disputes/:id",
+        "description": "Get dispute details",
+        "url": "http://localhost:8004/api/disputes/:id"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/disputes/:id",
+        "description": "Update dispute",
+        "url": "http://localhost:8004/api/disputes/:id"
+      },
+      {
+        "method": "POST",
+        "path": "/api/disputes/:id/resolve",
+        "description": "Resolve dispute",
+        "url": "http://localhost:8004/api/disputes/:id/resolve"
+      },
+      {
+        "method": "GET",
+        "path": "/api/disputes/triage",
+        "description": "Get triage queue",
+        "url": "http://localhost:8004/api/disputes/triage"
+      },
+      {
+        "method": "POST",
+        "path": "/api/disputes/:id/assign",
+        "description": "Assign resolver",
+        "url": "http://localhost:8004/api/disputes/:id/assign"
+      },
+      {
+        "method": "GET",
+        "path": "/api/disputes/resolvers",
+        "description": "Get available resolvers",
+        "url": "http://localhost:8004/api/disputes/resolvers"
+      }
+    ]
+  },
+  "content-crawler": {
+    "name": "Content Crawler",
+    "port": 8005,
+    "description": "Web content crawling",
+    "documentationUrl": "http://localhost:8005/api/docs",
+    "healthCheckUrl": "http://localhost:8005/health",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/crawler/crawl",
+        "description": "Crawl single URL",
+        "url": "http://localhost:8005/api/crawler/crawl"
+      },
+      {
+        "method": "POST",
+        "path": "/api/crawler/batch-crawl",
+        "description": "Batch crawl URLs",
+        "url": "http://localhost:8005/api/crawler/batch-crawl"
+      },
+      {
+        "method": "GET",
+        "path": "/api/crawler/jobs/:id",
+        "description": "Get crawl job status",
+        "url": "http://localhost:8005/api/crawler/jobs/:id"
+      },
+      {
+        "method": "GET",
+        "path": "/api/crawler/content/:id",
+        "description": "Get crawled content",
+        "url": "http://localhost:8005/api/crawler/content/:id"
+      },
+      {
+        "method": "POST",
+        "path": "/api/crawler/schedule",
+        "description": "Schedule crawl job",
+        "url": "http://localhost:8005/api/crawler/schedule"
+      },
+      {
+        "method": "GET",
+        "path": "/api/crawler/queue/status",
+        "description": "Get crawl queue status",
+        "url": "http://localhost:8005/api/crawler/queue/status"
+      },
+      {
+        "method": "GET",
+        "path": "/api/crawler/stats",
+        "description": "Get crawling statistics",
+        "url": "http://localhost:8005/api/crawler/stats"
+      }
+    ]
+  },
+  "audit-store": {
+    "name": "Audit Store",
+    "port": 8006,
+    "description": "Audit trails and verification",
+    "documentationUrl": "http://localhost:8006/api/docs",
+    "healthCheckUrl": "http://localhost:8006/health",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/audit/entries",
+        "description": "Create audit entry",
+        "url": "http://localhost:8006/api/audit/entries"
+      },
+      {
+        "method": "GET",
+        "path": "/api/audit/trail/:entityId",
+        "description": "Get audit trail",
+        "url": "http://localhost:8006/api/audit/trail/:entityId"
+      },
+      {
+        "method": "GET",
+        "path": "/api/audit/entries",
+        "description": "List audit entries",
+        "url": "http://localhost:8006/api/audit/entries"
+      },
+      {
+        "method": "GET",
+        "path": "/api/audit/verify/:entryId",
+        "description": "Verify audit entry",
+        "url": "http://localhost:8006/api/audit/verify/:entryId"
+      },
+      {
+        "method": "GET",
+        "path": "/api/audit/chain/:entityId",
+        "description": "Get hash chain",
+        "url": "http://localhost:8006/api/audit/chain/:entityId"
+      },
+      {
+        "method": "GET",
+        "path": "/api/audit/stats",
+        "description": "Get audit statistics",
+        "url": "http://localhost:8006/api/audit/stats"
+      },
+      {
+        "method": "POST",
+        "path": "/api/audit/export",
+        "description": "Export audit data",
+        "url": "http://localhost:8006/api/audit/export"
+      }
+    ]
+  },
+  "governance-service": {
+    "name": "Governance Service",
+    "port": 8007,
+    "description": "DAO governance and voting",
+    "documentationUrl": "http://localhost:8007/api/docs",
+    "healthCheckUrl": "http://localhost:8007/health",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/api/governance/proposals",
+        "description": "List proposals",
+        "url": "http://localhost:8007/api/governance/proposals"
+      },
+      {
+        "method": "POST",
+        "path": "/api/governance/proposals",
+        "description": "Create proposal",
+        "url": "http://localhost:8007/api/governance/proposals"
+      },
+      {
+        "method": "GET",
+        "path": "/api/governance/proposals/:id",
+        "description": "Get proposal details",
+        "url": "http://localhost:8007/api/governance/proposals/:id"
+      },
+      {
+        "method": "POST",
+        "path": "/api/governance/proposals/:id/vote",
+        "description": "Vote on proposal",
+        "url": "http://localhost:8007/api/governance/proposals/:id/vote"
+      },
+      {
+        "method": "GET",
+        "path": "/api/governance/members",
+        "description": "List DAO members",
+        "url": "http://localhost:8007/api/governance/members"
+      },
+      {
+        "method": "GET",
+        "path": "/api/governance/tokens",
+        "description": "Get governance tokens",
+        "url": "http://localhost:8007/api/governance/tokens"
+      },
+      {
+        "method": "GET",
+        "path": "/api/governance/treasury",
+        "description": "Get treasury info",
+        "url": "http://localhost:8007/api/governance/treasury"
+      },
+      {
+        "method": "GET",
+        "path": "/api/governance/parameters",
+        "description": "Get governance parameters",
+        "url": "http://localhost:8007/api/governance/parameters"
+      }
+    ]
+  }
+}

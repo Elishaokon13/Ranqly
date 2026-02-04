@@ -1,0 +1,51 @@
+{
+  "name": "@ranqly/contracts",
+  "version": "1.0.0",
+  "description": "Ranqly smart contracts",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:gas": "REPORT_GAS=true hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:polygon": "hardhat run scripts/deploy.ts --network polygon",
+    "deploy:ranqly": "hardhat run scripts/deploy.js --network hardhat",
+    "verify": "hardhat verify",
+    "size": "hardhat size-contracts",
+    "coverage": "hardhat coverage",
+    "clean": "hardhat clean",
+    "node": "hardhat node",
+    "fork": "hardhat node --fork https://polygon-rpc.com"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@openzeppelin/contracts": "^4.9.3",
+    "@openzeppelin/hardhat-upgrades": "^2.0.0",
+    "@typechain/ethers-v6": "^0.4.0",
+    "@typechain/hardhat": "^9.1.0",
+    "@types/chai": "^4.2.0",
+    "@types/mocha": "^10.0.1",
+    "chai": "^4.2.0",
+    "ethers": "^6.8.1",
+    "hardhat": "^2.17.1",
+    "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.8.4",
+    "ts-node": "^10.9.1",
+    "typechain": "^8.3.1",
+    "typescript": "^5.1.6"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "web3",
+    "ranqly"
+  ],
+  "author": "Ranqly Team",
+  "license": "MIT"
+}

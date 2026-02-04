@@ -1,0 +1,26 @@
+{
+  "name": "@ranqly/sybil-detector",
+  "version": "1.0.0",
+  "description": "Advanced Sybil Detection Service for Ranqly Platform",
+  "main": "main.py",
+  "scripts": {
+    "start": "python main.py",
+    "dev": "python main.py",
+    "test": "pytest",
+    "lint": "flake8 src/",
+    "lint:fix": "autopep8 --in-place --recursive src/"
+  },
+  "keywords": [
+    "sybil-detection",
+    "blockchain",
+    "voting",
+    "security",
+    "ranqly"
+  ],
+  "author": "Ranqly Team",
+  "license": "MIT",
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0"
+  }
+}
