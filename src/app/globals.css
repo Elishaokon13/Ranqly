@@ -1,26 +1,330 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Atemica with unicode-range excluding digits (0-9) so numbers use JetBrains and render correctly.
+   Copy src/app/fonts/AtemicaSans_PERSONAL_USE_ONLY.otf to public/fonts/ for this to load. */
+@font-face {
+  font-family: "Atemica Sans No Nums";
+  src: url("/fonts/AtemicaSans_PERSONAL_USE_ONLY.otf") format("opentype");
+  font-display: swap;
+  unicode-range: U+0000-002F, U+003A-10FFFF; /* exclude U+0030-0039 (0-9) */
 }
+
+/* ============================================
+   RANQLY DESIGN SYSTEM — Design Tokens
+   Brand: #6874E8 (primary), Atemica Sans
+   Palette: #506C64, #64F58D, #E8F0FF, #6874E8, #392759
+   Theme: Dark
+   ============================================ */
+
+/* ============================================
+   TAILWIND v4 THEME — Design token definitions
+   These generate all utility classes like
+   bg-primary-500, text-text-secondary, etc.
+   ============================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* ── PRIMARY — Ranqly Blue (logo colour) ── */
+  --color-primary-100: #E8F0FF;
+  --color-primary-200: #B0B5F7;
+  --color-primary-300: #989EF2;
+  --color-primary-400: #8087ED;
+  --color-primary-500: #6874E8;
+  --color-primary-600: #5863D9;
+  --color-primary-700: #4852C4;
+
+  /* ── ACCENT — Ranqly Mint ── */
+  --color-accent-400: #64F58D;
+  --color-accent-500: #64F58D;
+  --color-accent-600: #00C293;
+  --color-accent-700: #00AA82;
+
+  /* ── RANQLY BRAND PALETTE ── */
+  --color-brand-slate: #506C64;
+  --color-brand-mint: #64F58D;
+  --color-brand-lavender: #E8F0FF;
+  --color-brand-indigo: #392759;
+
+  /* ── NEUTRALS — Dark Theme Backgrounds ── */
+  --color-bg-primary: #0A0A0F;
+  --color-bg-secondary: #131318;
+  --color-bg-tertiary: #1C1C23;
+  --color-bg-elevated: #25252D;
+
+  /* ── BORDERS ── */
+  --color-border-subtle: #2D2D35;
+  --color-border-medium: #3D3D48;
+  --color-border-strong: #6874E8;
+
+  /* ── TEXT ── */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A0A0AB;
+  --color-text-tertiary: #6B6B78;
+  --color-text-disabled: #4A4A54;
+
+  /* ── SEMANTIC ── */
+  --color-success: #64F58D;
+  --color-warning: #FFB800;
+  --color-error: #FF4757;
+  --color-info: #6874E8;
+
+  /* ── TIER GRADIENT ENDPOINTS ── */
+  --color-tier-diamond-from: #B9F2FF;
+  --color-tier-diamond-to: #7DD3FC;
+  --color-tier-platinum-from: #E6E6FA;
+  --color-tier-platinum-to: #C4B5FD;
+  --color-tier-gold-from: #FDE68A;
+  --color-tier-gold-to: #FCD34D;
+  --color-tier-silver-from: #E5E7EB;
+  --color-tier-silver-to: #D1D5DB;
+  --color-tier-bronze-from: #FDBA74;
+  --color-tier-bronze-to: #FB923C;
+
+  /* ── FONTS — Atemica for letters; digits use mono (IBM Plex Mono; must be next after No Nums) ── */
+  --font-display: "Atemica Sans No Nums", var(--font-mono-fam), var(--font-atemica), system-ui, sans-serif;
+  --font-body: "Atemica Sans No Nums", var(--font-mono-fam), var(--font-atemica), system-ui, sans-serif;
+  --font-mono: var(--font-mono-fam), 'SF Mono', monospace;
+  --font-numeric: var(--font-mono-fam), 'SF Mono', monospace;
+
+  /* ── BORDER RADIUS ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── SHADOWS ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 16px rgba(104, 116, 232, 0.16);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.24);
+  --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.32);
+  --shadow-glow-primary: 0 0 20px rgba(104, 116, 232, 0.4);
+  --shadow-glow-success: 0 0 20px rgba(0, 217, 163, 0.4);
+
+  /* ── SPACING (4px base unit) ── */
+  --spacing-0_5: 2px;
+  --spacing-1: 4px;
+  --spacing-1_5: 6px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-20: 80px;
+  --spacing-24: 96px;
+
+  /* ── ANIMATIONS ── */
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================
+   CSS CUSTOM PROPERTIES (for use in custom CSS)
+   Mirror the theme values for JS/CSS access
+   ============================================ */
+
+:root {
+  --primary-100: #E8F0FF;
+  --primary-200: #B0B5F7;
+  --primary-300: #989EF2;
+  --primary-400: #8087ED;
+  --primary-500: #6874E8;
+  --primary-600: #5863D9;
+  --primary-700: #4852C4;
+
+  --accent-400: #64F58D;
+  --accent-500: #64F58D;
+  --accent-600: #00C293;
+  --accent-700: #00AA82;
+
+  --brand-slate: #506C64;
+  --brand-mint: #64F58D;
+  --brand-lavender: #E8F0FF;
+  --brand-indigo: #392759;
+
+  --bg-primary: #0A0A0F;
+  --bg-secondary: #131318;
+  --bg-tertiary: #1C1C23;
+  --bg-elevated: #25252D;
+
+  --border-subtle: #2D2D35;
+  --border-medium: #3D3D48;
+  --border-strong: #6874E8;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0AB;
+  --text-tertiary: #6B6B78;
+  --text-disabled: #4A4A54;
+
+  --success: #00D9A3;
+  --warning: #FFB800;
+  --error: #FF4757;
+  --info: #6874E8;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 16px rgba(104, 116, 232, 0.16);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.24);
+  --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.32);
+  --glow-primary: 0 0 20px rgba(104, 116, 232, 0.4);
+  --glow-success: 0 0 20px rgba(0, 217, 163, 0.4);
+
+  --navbar-height: 72px;
+  --button-height-sm: 36px;
+  --button-height-md: 44px;
+  --button-height-lg: 52px;
+  --input-height: 48px;
+  --card-width-sm: 320px;
+  --card-width-md: 380px;
+  --card-width-lg: 480px;
+}
+
+/* ============================================
+   KEYFRAMES
+   ============================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(104, 116, 232, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(104, 116, 232, 0.6); }
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: rgba(104, 116, 232, 0.3);
+  color: var(--text-primary);
+}
+
+/* ── Focus Ring ── */
+*:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* Numbers: use mono (JetBrains) for numerals, tabular alignment */
+.font-numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Force numeral font (e.g. hero "3" in Web3) to override display font */
+.font-numeral-only {
+  font-family: var(--font-mono-fam), var(--font-mono), ui-monospace, monospace !important;
+}
+#hero-web3-numeral {
+  font-family: var(--font-mono-fam), var(--font-mono), "SF Mono", Consolas, monospace !important;
+}
+
+/* ============================================
+   UTILITY CLASSES (gradients, tier styles)
+   ============================================ */
+
+/* Tier gradient backgrounds */
+.bg-tier-diamond {
+  background: linear-gradient(135deg, #B9F2FF 0%, #7DD3FC 100%);
+}
+.bg-tier-platinum {
+  background: linear-gradient(135deg, #E6E6FA 0%, #C4B5FD 100%);
+}
+.bg-tier-gold {
+  background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%);
+}
+.bg-tier-silver {
+  background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+}
+.bg-tier-bronze {
+  background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
+}
+
+/* Tier gradient text */
+.text-tier-diamond {
+  background: linear-gradient(135deg, #B9F2FF 0%, #7DD3FC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-tier-platinum {
+  background: linear-gradient(135deg, #E6E6FA 0%, #C4B5FD 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-tier-gold {
+  background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-tier-silver {
+  background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-tier-bronze {
+  background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
