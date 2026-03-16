@@ -6,31 +6,66 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const zod_1 = require("zod");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const siwe_1 = require("siwe");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
 const JWT_EXPIRY = "7d";
 const router = (0, express_1.Router)();
-/** POST /api/auth/nonce — get SIWE nonce (placeholder: returns fixed nonce for dev) */
+/** GET /api/auth/nonce — get SIWE nonce (for Reown AppKit / SIWE flow) */
+router.get("/nonce", async (_req, res) => {
+    res.json({ nonce: `ranqly-${Date.now()}-${Math.random().toString(36).slice(2, 12)}` });
+});
+/** POST /api/auth/nonce — get SIWE nonce (legacy) */
 router.post("/nonce", async (_req, res) => {
-    res.json({ nonce: `ranqly-${Date.now()}` });
+    res.json({ nonce: `ranqly-${Date.now()}-${Math.random().toString(36).slice(2, 12)}` });
 });
 const siweBody = zod_1.z.object({
     message: zod_1.z.string(),
     signature: zod_1.z.string(),
 });
-/** POST /api/auth/siwe — verify SIWE and issue JWT (placeholder: accepts wallet + signature, creates/finds user, returns token) */
+/** Ensure signature is 0x-prefixed hex (siwe.verify expects this). */
+function normalizeSignature(sig) {
+    const s = (sig ?? "").trim();
+    if (/^0x[0-9a-fA-F]+$/.test(s))
+        return s;
+    if (/^[0-9a-fA-F]+$/.test(s))
+        return `0x${s}`;
+    return s;
+}
+/** POST /api/auth/siwe — verify SIWE message + signature, create/find user, issue JWT */
 router.post("/siwe", async (req, res) => {
     const parsed = siweBody.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
         return;
     }
-    // TODO: verify SIWE message + signature, extract address
-    // For now: require walletAddress in body for dev
-    const walletAddress = req.body.walletAddress?.toLowerCase();
-    if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-        res.status(400).json({ error: "walletAddress required (0x...)" });
+    const { message, signature } = parsed.data;
+    const normalizedSignature = normalizeSignature(signature);
+    let walletAddress;
+    let chainId;
+    try {
+        const siweMessage = new siwe_1.SiweMessage(message);
+        const result = await siweMessage.verify({ signature: normalizedSignature }, { suppressExceptions: true });
+        if (!result.success) {
+            const err = result.error;
+            res.status(401).json({
+                error: "Invalid signature",
+                details: err?.type ?? "VERIFY_FAILED",
+                expected: err?.expected,
+                received: err?.received,
+            });
+            return;
+        }
+        walletAddress = (result.data.address ?? "").toLowerCase();
+        chainId = result.data.chainId;
+    }
+    catch (err) {
+        res.status(400).json({ error: "SIWE verification failed", details: String(err) });
+        return;
+    }
+    if (!walletAddress || !/^0x[a-f0-9]{40}$/.test(walletAddress)) {
+        res.status(400).json({ error: "Invalid address from message" });
         return;
     }
     let user = await prisma_1.prisma.user.findUnique({ where: { walletAddress } });
@@ -42,6 +77,8 @@ router.post("/siwe", async (req, res) => {
     const token = jsonwebtoken_1.default.sign({ userId: user.id, walletAddress: user.walletAddress ?? undefined }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
     res.json({
         token,
+        address: walletAddress,
+        chainId,
         user: {
             id: user.id,
             walletAddress: user.walletAddress,

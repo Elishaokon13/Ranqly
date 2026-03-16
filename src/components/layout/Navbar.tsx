@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAppKit } from "@reown/appkit/react";
+import { useDisconnect } from "wagmi";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,7 +34,8 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const { user, signIn, signOut } = useAuth();
-  const { open: openAppKit, disconnect } = useAppKit();
+  const { open: openAppKit } = useAppKit();
+  const { disconnect } = useDisconnect();
   const useWalletAuth = isApiConfigured();
 
   return (

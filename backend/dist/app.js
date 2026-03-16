@@ -53,6 +53,19 @@ const admin_1 = __importDefault(require("./routes/admin"));
 const me_1 = __importDefault(require("./routes/me"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT ?? 4000;
+// CORS: allow frontend origins (Next.js dev)
+const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:3000,http://localhost:3001";
+app.use((_req, res, next) => {
+    const origin = _req.headers.origin;
+    if (origin && corsOrigin.split(",").map((o) => o.trim()).includes(origin)) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+    }
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-Id");
+    if (_req.method === "OPTIONS")
+        return res.sendStatus(204);
+    next();
+});
 app.use(express_1.default.json());
 // Optional auth for all /api routes (sets req.userId when Bearer or X-User-Id present)
 app.use("/api", auth_1.optionalAuth);

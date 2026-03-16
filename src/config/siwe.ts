@@ -35,16 +35,6 @@ function clearStoredSession() {
   sessionStorage.removeItem(SIWE_SESSION_KEY);
 }
 
-/** SIWX may pass CAIP-10/25 (eip155:chainId:0x...) — SiweMessage needs plain 0x address. */
-function normalizeAddress(addr: string | undefined): string {
-  if (!addr || typeof addr !== "string") return "";
-  const trimmed = addr.trim();
-  const match = trimmed.match(/^(?:eip155:\d+:)?(0x[a-fA-F0-9]{40})$/);
-  if (match) return match[1];
-  if (/^0x[a-fA-F0-9]{40}$/.test(trimmed)) return trimmed;
-  return trimmed;
-}
-
 export const siweConfig = createSIWEConfig({
   getMessageParams: async () => ({
     domain: typeof window !== "undefined" ? window.location.host : "localhost",
@@ -52,18 +42,20 @@ export const siweConfig = createSIWEConfig({
     chains: [mainnet.id, base.id],
     statement: "Sign in to Ranqly with your wallet.",
   }),
-
-  createMessage: ({ nonce, address, chainId }: SIWECreateMessageArgs) => {
-    const normalizedAddress = normalizeAddress(address);
-    if (!normalizedAddress) throw new Error("Invalid address for SIWE message");
+  createMessage: ({ address, ...args }: SIWECreateMessageArgs) => {
+    const raw = typeof address === "string" ? address.trim() : "";
+    const caipMatch = raw.match(/^eip155:\d+:(0x[a-fA-F0-9]{40})$/);
+    const norm = caipMatch ? caipMatch[1] : /^0x[a-fA-F0-9]{40}$/.test(raw) ? raw : "";
+    if (!norm) throw new Error("Invalid address for SIWE message");
     return new SiweMessage({
       version: "1",
-      domain: typeof window !== "undefined" ? window.location.host : "localhost",
-      uri: typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
-      address: normalizedAddress,
-      chainId: Number(chainId) || 1,
-      nonce,
-      statement: "Sign in to Ranqly with your wallet.",
+      domain: args.domain ?? (typeof window !== "undefined" ? window.location.host : "localhost"),
+      uri: args.uri ?? (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"),
+      address: norm,
+      chainId: args.chainId ?? 1,
+      nonce: args.nonce ?? "",
+      statement: args.statement ?? "Sign in to Ranqly with your wallet.",
+      issuedAt: args.iat ?? new Date().toISOString(),
     }).prepareMessage();
   },
 
@@ -84,23 +76,37 @@ export const siweConfig = createSIWEConfig({
     const apiBase = getApiBase();
     if (!apiBase) return false;
     try {
-      const siweMessage = new SiweMessage(message);
-      const address = siweMessage.address?.toLowerCase();
-      const chainId = siweMessage.chainId;
       const res = await fetch(`${apiBase}/api/auth/siwe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, signature }),
       });
-      if (!res.ok) return false;
-      const data = (await res.json()) as { token?: string };
-      if (data.token) {
+      const data = (await res.json()) as {
+        token?: string;
+        address?: string;
+        chainId?: number;
+        error?: string;
+        details?: string;
+        expected?: string;
+        received?: string;
+      };
+      if (res.ok && data.token) {
+        const address = data.address ?? (() => { try { return new SiweMessage(message).address?.toLowerCase(); } catch { return undefined; } })();
+        const chainId = data.chainId ?? (() => { try { return new SiweMessage(message).chainId; } catch { return undefined; } })();
         setAuthToken(data.token);
         if (address && chainId != null) setStoredSession(address, chainId);
         return true;
       }
+      if (!res.ok) {
+        console.warn("[SIWE] verify failed", res.status, data.error ?? "Unknown", {
+          details: data.details,
+          expected: data.expected,
+          received: data.received,
+        });
+      }
       return false;
-    } catch {
+    } catch (e) {
+      console.warn("[SIWE] verify error:", e);
       return false;
     }
   },

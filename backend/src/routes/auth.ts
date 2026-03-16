@@ -12,18 +12,27 @@ const router = Router();
 
 /** GET /api/auth/nonce — get SIWE nonce (for Reown AppKit / SIWE flow) */
 router.get("/nonce", async (_req, res: Response) => {
-  res.json({ nonce: `ranqly-${Date.now()}-${Math.random().toString(36).slice(2, 12)}` });
+  res.json({ nonce: `ranqly${Date.now()}${Math.random().toString(36).slice(2, 12)}` });
 });
 
 /** POST /api/auth/nonce — get SIWE nonce (legacy) */
 router.post("/nonce", async (_req, res: Response) => {
-  res.json({ nonce: `ranqly-${Date.now()}-${Math.random().toString(36).slice(2, 12)}` });
+  res.json({ nonce: `ranqly${Date.now()}${Math.random().toString(36).slice(2, 12)}` });
 });
 
 const siweBody = z.object({
   message: z.string(),
   signature: z.string(),
 });
+
+/** Ensure signature is 0x-prefixed hex (siwe.verify expects this). */
+function normalizeSignature(sig: string): string {
+  const s = (sig ?? "").trim();
+  if (/^0x[0-9a-fA-F]+$/.test(s)) return s;
+  if (/^[0-9a-fA-F]+$/.test(s)) return `0x${s}`;
+  return s;
+}
+
 /** POST /api/auth/siwe — verify SIWE message + signature, create/find user, issue JWT */
 router.post("/siwe", async (req, res: Response) => {
   const parsed = siweBody.safeParse(req.body);
@@ -31,17 +40,31 @@ router.post("/siwe", async (req, res: Response) => {
     res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
     return;
   }
-  const { message, signature } = parsed.data;
+  let { message, signature } = parsed.data;
+  message = (message ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const normalizedSignature = normalizeSignature(signature);
   let walletAddress: string;
+  let chainId: number | undefined;
   try {
     const siweMessage = new SiweMessage(message);
-    const result = await siweMessage.verify({ signature });
+    const result = await siweMessage.verify(
+      { signature: normalizedSignature },
+      { suppressExceptions: true }
+    );
     if (!result.success) {
-      res.status(401).json({ error: "Invalid signature", details: result.error?.type });
+      const err = result.error as { type?: string; expected?: string; received?: string } | undefined;
+      res.status(401).json({
+        error: "Invalid signature",
+        details: err?.type ?? "VERIFY_FAILED",
+        expected: err?.expected,
+        received: err?.received,
+      });
       return;
     }
     walletAddress = (result.data.address ?? "").toLowerCase();
+    chainId = result.data.chainId;
   } catch (err) {
+    console.error("[SIWE] parse/verify error:", err);
     res.status(400).json({ error: "SIWE verification failed", details: String(err) });
     return;
   }
@@ -62,6 +85,8 @@ router.post("/siwe", async (req, res: Response) => {
   );
   res.json({
     token,
+    address: walletAddress,
+    chainId,
     user: {
       id: user.id,
       walletAddress: user.walletAddress,
