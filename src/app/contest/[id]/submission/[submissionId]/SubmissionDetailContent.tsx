@@ -57,7 +57,7 @@ export function SubmissionDetailContent({
   return (
     <div className="space-y-6">
       {/* Contest context */}
-      <Card padding="md">
+      <Card>
         <CardContent className="flex flex-wrap items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated text-sm font-bold text-text-primary">
             {contest.organizer.logo}

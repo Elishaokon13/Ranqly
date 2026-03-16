@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { getApiBase, setAuthToken } from "@/lib/api";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -42,29 +43,52 @@ const WALLETS = [
   { id: "walletconnect", name: "WalletConnect", icon: "🔗" },
 ];
 
+const DELAYS = {
+  social: 600,
+  emailSent: 800,
+  wallet: 1000,
+} as const;
+
+/** When true (e.g. judge/submit link), use minimal copy and rely on redirect—no extra steps. */
+function isQuickActionRedirect(redirectTo?: string): boolean {
+  if (!redirectTo) return false;
+  return /\/judge(\?|$)/.test(redirectTo) || /\/submit(\?|$)/.test(redirectTo);
+}
+
 export interface AuthFormProps {
   mode: "signin" | "signup";
   onSuccess: (method: "social" | "email" | "wallet", id?: string, email?: string) => void;
+  /** After auth, redirect to this path; also used for Sign up / Sign in cross-links */
+  redirectTo?: string;
 }
 
-export function AuthForm({ mode, onSuccess }: AuthFormProps) {
+export function AuthForm({ mode, onSuccess, redirectTo }: AuthFormProps) {
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
 
   const isSignIn = mode === "signin";
-  const title = isSignIn ? "Log in to Ranqly" : "Create your Ranqly account";
+  const quick = isQuickActionRedirect(redirectTo);
+  const title = quick
+    ? "Sign in to continue"
+    : isSignIn
+      ? "Log in to Ranqly"
+      : "Create your Ranqly account";
 
   const handleSocial = useCallback(
     (provider: "google" | "x") => {
       setStep("connecting");
       setTimeout(() => {
+        if (quick) {
+          onSuccess("social");
+          return;
+        }
         setStep("success");
         onSuccess("social");
-      }, 1500);
+      }, DELAYS.social);
     },
-    [onSuccess]
+    [onSuccess, quick]
   );
 
   const handleEmailSubmit = useCallback(() => {
@@ -80,25 +104,53 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
     setEmailError("");
     setStep("email-sent");
     setTimeout(() => {
+      if (quick) {
+        onSuccess("email", undefined, trimmed);
+        return;
+      }
       setStep("success");
       onSuccess("email", undefined, trimmed);
-    }, 2000);
-  }, [email, onSuccess]);
+    }, DELAYS.emailSent);
+  }, [email, onSuccess, quick]);
 
   const handleWalletSelect = useCallback(
     async (walletId: string) => {
       setSelectedWallet(walletId);
       setStep("connecting");
-      await new Promise((r) => setTimeout(r, 2000));
+      const base = getApiBase();
+      if (base) {
+        try {
+          const res = await fetch(`${base}/api/auth/siwe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: "dev",
+              signature: "dev",
+              walletAddress: "0x0000000000000000000000000000000000000001",
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.token) setAuthToken(data.token);
+          }
+        } catch {
+          // continue with mock sign-in
+        }
+      }
+      await new Promise((r) => setTimeout(r, DELAYS.wallet));
       const rand = Math.random();
-      if (rand > 0.9) setStep("error");
-      else if (rand > 0.8) setStep("rejected");
+      if (rand > 0.92) setStep("error");
+      else if (rand > 0.85) setStep("rejected");
       else {
+        if (quick) {
+          onSuccess("wallet", walletId);
+          return;
+        }
         setStep("success");
         onSuccess("wallet", walletId);
       }
     },
-    [onSuccess]
+    [onSuccess, quick]
   );
 
   const tryAgain = useCallback(() => {
@@ -119,12 +171,14 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
           >
             <div>
               <h1 className="font-display text-2xl font-bold text-text-primary">{title}</h1>
-              <p className="mt-2 text-sm text-text-tertiary">
-                By continuing, you agree to our{" "}
-                <Link href="/terms" className="text-primary-400 hover:underline">Terms of Service</Link>
-                {" "}and{" "}
-                <Link href="/privacy" className="text-primary-400 hover:underline">Privacy Policy</Link>.
-              </p>
+              {!quick && (
+                <p className="mt-2 text-sm text-text-tertiary">
+                  By continuing, you agree to our{" "}
+                  <Link href="/terms" className="text-primary-400 hover:underline">Terms of Service</Link>
+                  {" "}and{" "}
+                  <Link href="/privacy" className="text-primary-400 hover:underline">Privacy Policy</Link>.
+                </p>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -196,14 +250,20 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
               {isSignIn ? (
                 <>
                   Don&apos;t have a Ranqly account?{" "}
-                  <Link href="/signup" className="font-semibold text-primary-400 hover:underline">
+                  <Link
+                    href={redirectTo ? `/signup?redirect=${encodeURIComponent(redirectTo)}` : "/signup"}
+                    className="font-semibold text-primary-400 hover:underline"
+                  >
                     Sign up
                   </Link>
                 </>
               ) : (
                 <>
                   Already have an account?{" "}
-                  <Link href="/signin" className="font-semibold text-primary-400 hover:underline">
+                  <Link
+                    href={redirectTo ? `/signin?redirect=${encodeURIComponent(redirectTo)}` : "/signin"}
+                    className="font-semibold text-primary-400 hover:underline"
+                  >
                     Sign in
                   </Link>
                 </>

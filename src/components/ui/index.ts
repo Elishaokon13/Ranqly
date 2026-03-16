@@ -34,3 +34,7 @@ export { Separator, type SeparatorProps } from "./Separator";
 export { Avatar, AvatarStack, type AvatarProps } from "./Avatar";
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./Tabs";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
+export { CountUp } from "./CountUp";
+export { TiltCard } from "./TiltCard";
+export { TwinklingStars } from "./TwinklingStars";
+export { HeroBackground } from "./HeroBackground";

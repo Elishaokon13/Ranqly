@@ -13,7 +13,7 @@ export function TabsList({
   return (
     <TabsPrimitive.List
       className={cn(
-        "flex gap-1 border-b border-border-subtle",
+        "flex gap-1 overflow-x-auto border-b border-border-subtle scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className
       )}
       {...props}
@@ -31,7 +31,7 @@ export function TabsTrigger({
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        "relative px-4 py-2.5 text-sm font-medium text-text-tertiary",
+        "relative shrink-0 px-3 py-2.5 text-sm font-medium text-text-tertiary sm:px-4",
         "transition-colors hover:text-text-primary",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
         "data-[state=active]:text-primary-400",

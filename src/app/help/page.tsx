@@ -46,7 +46,7 @@ export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <motion.div
         className="mb-10 text-center"
         initial={{ opacity: 0, y: 20 }}
@@ -119,7 +119,7 @@ export default function HelpPage() {
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Link href="/how-it-works">
-            <Card padding="md" hoverable className="h-full">
+            <Card hoverable className="h-full">
               <CardContent className="flex items-center gap-3">
                 <BookOpen className="h-5 w-5 text-primary-400" />
                 <span className="font-medium text-text-primary">How it works</span>
@@ -127,7 +127,7 @@ export default function HelpPage() {
             </Card>
           </Link>
           <Link href="/explore">
-            <Card padding="md" hoverable className="h-full">
+            <Card hoverable className="h-full">
               <CardContent className="flex items-center gap-3">
                 <Compass className="h-5 w-5 text-primary-400" />
                 <span className="font-medium text-text-primary">Explore contests</span>
@@ -135,7 +135,7 @@ export default function HelpPage() {
             </Card>
           </Link>
           <Link href="/submissions">
-            <Card padding="md" hoverable className="h-full">
+            <Card hoverable className="h-full">
               <CardContent className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-primary-400" />
                 <span className="font-medium text-text-primary">My submissions</span>
@@ -143,7 +143,7 @@ export default function HelpPage() {
             </Card>
           </Link>
           <Link href="/disputes">
-            <Card padding="md" hoverable className="h-full">
+            <Card hoverable className="h-full">
               <CardContent className="flex items-center gap-3">
                 <MessageCircle className="h-5 w-5 text-primary-400" />
                 <span className="font-medium text-text-primary">Disputes</span>

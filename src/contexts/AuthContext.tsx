@@ -11,18 +11,39 @@ import {
 
 const STORAGE_KEY = "ranqly_user";
 
+/** User path determines default landing after sign-in when no redirect param is present. */
+export type UserPath = "creator" | "judge" | "organizer";
+
 export interface User {
   id: string;
   method: "social" | "email" | "wallet";
   email?: string;
   walletId?: string;
+  /** Account type / path: creator (submit & earn), judge (score entries), organizer (run contests). */
+  path?: UserPath;
+}
+
+function pathToDefaultRedirect(path: UserPath): string {
+  switch (path) {
+    case "organizer":
+      return "/dashboard/organizer";
+    case "judge":
+      return "/judge";
+    default:
+      return "/dashboard";
+  }
 }
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
-  signIn: (method: "social" | "email" | "wallet", id?: string, email?: string) => void;
+  /** Returns the user after sign-in (so callers can use user.path for redirect). */
+  signIn: (method: "social" | "email" | "wallet", id?: string, email?: string, path?: UserPath) => User;
   signOut: () => void;
+  /** Update the current user's path (creator / judge / organizer). Persisted. */
+  updateUserPath: (path: UserPath) => void;
+  /** Default redirect for a given path (e.g. organizer → /dashboard/organizer). */
+  pathToDefaultRedirect: (path: UserPath) => string;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -57,15 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(
-    (method: "social" | "email" | "wallet", id?: string, email?: string) => {
+    (method: "social" | "email" | "wallet", id?: string, email?: string, path?: UserPath): User => {
       const newUser: User = {
         id: id ?? `user-${method}-${Date.now()}`,
         method,
         ...(email && { email }),
         ...(method === "wallet" && id && { walletId: id }),
+        ...(path && { path }),
       };
       setUser(newUser);
       saveUser(newUser);
+      return newUser;
     },
     []
   );
@@ -75,8 +98,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveUser(null);
   }, []);
 
+  const updateUserPath = useCallback((path: UserPath) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, path };
+      saveUser(next);
+      return next;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signOut, updateUserPath, pathToDefaultRedirect }}>
       {children}
     </AuthContext.Provider>
   );

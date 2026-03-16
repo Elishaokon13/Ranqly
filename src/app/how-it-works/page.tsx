@@ -21,7 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { Button, Badge, Card, Progress, Separator } from "@/components/ui";
+import { Button, Badge, Card, Progress, Separator, HeroBackground } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 const phases = [
@@ -245,13 +245,14 @@ export default function HowItWorksPage() {
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-1/3 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary-500/10 blur-[120px]" />
         </div>
-        <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
+        <HeroBackground />
+        <div className="relative mx-auto max-w-content px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
           <motion.div {...fadeIn} transition={{ duration: 0.6 }}>
             <Badge variant="primary" size="lg" className="mb-6">
               <Sparkles className="h-3.5 w-3.5" />
               Contest Lifecycle
             </Badge>
-            <h1 className="text-4xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl">
               How{" "}
               <span className="bg-linear-to-r from-primary-400 via-primary-300 to-accent-500 bg-clip-text text-transparent">
                 Ranqly
@@ -267,7 +268,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Contest Lifecycle Timeline */}
-      <section className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
         <motion.div className="text-center mb-12" {...fadeIn} transition={{ duration: 0.6 }}>
           <h2 className="text-3xl font-bold text-text-primary font-display">
             The six phases
@@ -351,7 +352,7 @@ export default function HowItWorksPage() {
 
       {/* Roles */}
       <section className="border-t border-border-subtle bg-bg-secondary/50">
-        <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-12" {...fadeIn} transition={{ duration: 0.6 }}>
             <Badge variant="default" size="md" className="mb-4">Roles</Badge>
             <h2 className="text-3xl font-bold text-text-primary font-display">
@@ -364,8 +365,8 @@ export default function HowItWorksPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {roles.map((role, i) => (
-              <motion.div key={role.title} {...fadeIn} transition={{ delay: i * 0.1 }}>
-                <Card padding="lg" className="h-full">
+              <motion.div key={role.title} {...fadeIn} transition={{ delay: i * 0.1 }} className="h-full">
+                <Card className="h-full">
                   <div className="flex items-center gap-3 mb-4">
                     <div className={cn("inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br", role.color)}>
                       <role.icon className="h-5 w-5 text-white" />
@@ -394,7 +395,7 @@ export default function HowItWorksPage() {
 
       {/* Scoring Breakdown */}
       <section className="border-t border-border-subtle">
-        <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-12" {...fadeIn} transition={{ duration: 0.6 }}>
             <Badge variant="default" size="md" className="mb-4">
               <BarChart3 className="h-3 w-3" /> Scoring
@@ -409,8 +410,8 @@ export default function HowItWorksPage() {
 
           <div className="grid gap-6 lg:grid-cols-3">
             {scoringPillars.map((pillar, i) => (
-              <motion.div key={pillar.label} {...fadeIn} transition={{ delay: i * 0.15 }}>
-                <Card padding="lg" className="h-full">
+              <motion.div key={pillar.label} {...fadeIn} transition={{ delay: i * 0.15 }} className="h-full">
+                <Card className="h-full">
                   <div className="flex items-center justify-between mb-4">
                     <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-bg-tertiary">
                       <pillar.icon className="h-5 w-5 text-text-secondary" />

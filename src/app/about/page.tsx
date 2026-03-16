@@ -23,6 +23,7 @@ import {
   Avatar,
   Card,
   Separator,
+  HeroBackground,
 } from "@/components/ui";
 
 const team = [
@@ -146,13 +147,14 @@ export default function AboutPage() {
           <div className="absolute -top-1/2 left-1/3 h-[600px] w-[600px] rounded-full bg-primary-500/10 blur-[120px]" />
           <div className="absolute -bottom-1/4 right-1/4 h-[400px] w-[400px] rounded-full bg-accent-500/8 blur-[100px]" />
         </div>
+        <HeroBackground />
 
-        <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
+        <div className="relative mx-auto max-w-content px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
           <motion.div {...fadeIn} transition={{ duration: 0.6 }}>
             <Badge variant="primary" size="lg" className="mb-6">
               Our Mission
             </Badge>
-            <h1 className="text-4xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl">
               Making content{" "}
               <span className="bg-gradient-to-r from-primary-400 to-accent-500 bg-clip-text text-transparent">
                 rewards fair
@@ -189,7 +191,7 @@ export default function AboutPage() {
       </section>
 
       {/* Team */}
-      <section className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
         <motion.div className="text-center" {...fadeIn} transition={{ duration: 0.6 }}>
           <Badge variant="default" size="md" className="mb-4">
             The Team
@@ -209,8 +211,9 @@ export default function AboutPage() {
               key={member.name}
               {...fadeIn}
               transition={{ delay: i * 0.1 }}
+              className="h-full"
             >
-              <Card className="flex flex-col items-center text-center" padding="lg">
+              <Card className="flex h-full flex-col items-center text-center">
                 <Avatar size="xl" fallback={member.avatar} alt={member.name} />
                 <h3 className="mt-4 text-base font-semibold text-text-primary font-display">
                   {member.name}
@@ -235,7 +238,7 @@ export default function AboutPage() {
 
       {/* Roadmap */}
       <section className="border-t border-border-subtle bg-bg-secondary/50">
-        <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
           <motion.div className="text-center" {...fadeIn} transition={{ duration: 0.6 }}>
             <Badge variant="default" size="md" className="mb-4">
               Roadmap
@@ -330,7 +333,7 @@ export default function AboutPage() {
 
       {/* Press Mentions */}
       <section className="border-t border-border-subtle">
-        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-content px-4 py-16 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeIn} transition={{ duration: 0.6 }}>
             <Badge variant="default" size="md" className="mb-4">
               <Newspaper className="h-3 w-3" /> Press
@@ -342,8 +345,8 @@ export default function AboutPage() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             {press.map((item, i) => (
-              <motion.div key={item.name} {...fadeIn} transition={{ delay: i * 0.1 }}>
-                <Card className="text-center" padding="lg">
+              <motion.div key={item.name} {...fadeIn} transition={{ delay: i * 0.1 }} className="h-full">
+                <Card className="h-full text-center">
                   <p className="text-sm font-semibold text-primary-400 mb-2">{item.name}</p>
                   <p className="text-sm italic leading-relaxed text-text-secondary">
                     &ldquo;{item.quote}&rdquo;

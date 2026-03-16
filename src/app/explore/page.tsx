@@ -1,3 +1,5 @@
+import { fetchContests } from "@/lib/api";
+import { MOCK_CONTESTS } from "@/lib/mock-data";
 import { ExploreClient } from "./ExploreClient";
 
 interface PageProps {
@@ -10,8 +12,17 @@ export default async function ExplorePage({ searchParams }: PageProps) {
   const category =
     typeof params.category === "string" ? params.category : "all";
 
+  let initialContests = MOCK_CONTESTS;
+  try {
+    const apiContests = await fetchContests({ limit: 100 });
+    if (apiContests.length > 0) initialContests = apiContests;
+  } catch {
+    // use mock when API unavailable
+  }
+
   return (
     <ExploreClient
+      initialContests={initialContests}
       initialSearch={q}
       initialCategory={category === "all" ? undefined : category}
     />

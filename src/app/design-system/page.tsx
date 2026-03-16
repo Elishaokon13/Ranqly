@@ -35,15 +35,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { TooltipProvider, Tooltip } from "@/components/ui";
-import {
-  Trophy,
-  LogIn,
-  Star,
-  Flame,
-  Clock,
-  Search,
-  Inbox,
-} from "lucide-react";
+import { Icon, type IconName } from "@/components/icons";
 
 export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -53,15 +45,43 @@ export default function Home() {
 
   return (
     <TooltipProvider>
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-content px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-text-primary font-display mb-2">
             Ranqly Component Library
           </h1>
           <p className="text-text-secondary text-lg">
-            Phase 1 — Core UI components built on Radix UI + Tailwind CSS
+            Phase 1 — Core UI components built on Radix UI + Tailwind CSS. Custom icons (Spec §3) and animation tokens (Spec §4).
           </p>
         </div>
+
+        {/* Custom Icons — Spec §3 */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold text-text-primary mb-6 font-display">
+            Custom Icons
+          </h2>
+          <p className="text-text-secondary mb-4">
+            Stroke 2px, round cap/join, currentColor. Sizes: xs (16px), sm (20px), md (24px), lg (32px), xl (48px), 2xl (64px).
+          </p>
+          <div className="mb-6 flex flex-wrap items-center gap-6">
+            {(["xs", "sm", "md", "lg", "xl", "2xl"] as const).map((s) => (
+              <div key={s} className="flex flex-col items-center gap-2">
+                <Icon name="trophy" size={s} className="text-primary-400" />
+                <span className="text-xs text-text-tertiary">{s}</span>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-8">
+            {(["home", "search", "dashboard", "trophy", "fire", "clock", "voting-pass", "contest", "judge", "leaderboard", "shield", "wallet", "arrow-right", "check", "close"] as IconName[]).map((name) => (
+              <div key={name} className="flex flex-col items-center gap-1 rounded-lg border border-border-subtle bg-bg-tertiary p-3">
+                <Icon name={name} size="md" className="text-text-primary" />
+                <span className="text-[10px] text-text-tertiary truncate w-full text-center">{name}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <Separator className="mb-12" />
 
         {/* Buttons */}
         <section className="mb-12">
@@ -85,7 +105,7 @@ export default function Home() {
             <Button loading>Loading...</Button>
             <Button disabled>Disabled</Button>
             <Button variant="primary">
-              <LogIn className="h-4 w-4" />
+              <Icon name="log-in" size="sm" />
               Sign in
             </Button>
           </div>
@@ -233,14 +253,14 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Badge variant="hot" size="sm">
-              <Flame className="h-3 w-3" /> HOT
+              <Icon name="fire" size="xs" /> HOT
             </Badge>
             <Badge variant="warning" size="sm">
-              <Clock className="h-3 w-3" /> ENDING SOON
+              <Icon name="clock" size="xs" /> ENDING SOON
             </Badge>
             <Badge variant="primary" size="lg">Content</Badge>
             <Badge variant="success" size="lg">
-              <Trophy className="h-3.5 w-3.5" /> Winner
+              <Icon name="trophy" size="sm" /> Winner
             </Badge>
           </div>
         </section>
@@ -284,7 +304,7 @@ export default function Home() {
             <Card padding="lg" className="bg-bg-tertiary">
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-500/20">
-                  <Star className="h-5 w-5 text-primary-400" />
+                  <Icon name="star" size="lg" className="text-primary-400" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-text-primary">$2M USDC</p>
@@ -466,12 +486,12 @@ export default function Home() {
             Empty State
           </h2>
           <EmptyState
-            icon={<Inbox className="h-12 w-12" />}
+            icon={<Icon name="contest" size="xl" className="text-text-tertiary" />}
             title="No contests found"
             description="Try adjusting your filters or explore different categories"
             action={
               <Button variant="secondary" size="sm">
-                <Search className="h-4 w-4" />
+                <Icon name="search" size="sm" />
                 Reset Filters
               </Button>
             }

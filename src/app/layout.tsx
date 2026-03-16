@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { IBM_Plex_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import { Navbar, Footer } from "@/components/layout";
 import { Providers } from "@/components/Providers";
+import { AppKitProvider } from "@/components/AppKitProvider";
 import "./globals.css";
 
 const atemicaSans = localFont({
@@ -31,23 +33,28 @@ export const viewport: Viewport = {
   themeColor: "#0A0A0F",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersObj = await headers();
+  const cookies = headersObj.get("cookie");
+
   return (
     <html lang="en">
       <body
         className={`${atemicaSans.variable} ${ibmPlexMono.variable}`}
       >
-        <Providers>
-          <Navbar />
-          <main className="min-h-[calc(100vh-var(--navbar-height))]">
-            {children}
-          </main>
-          <Footer />
-        </Providers>
+        <AppKitProvider cookies={cookies}>
+          <Providers>
+            <Navbar />
+            <main className="min-h-[calc(100vh-var(--navbar-height))]">
+              {children}
+            </main>
+            <Footer />
+          </Providers>
+        </AppKitProvider>
       </body>
     </html>
   );

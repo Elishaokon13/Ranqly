@@ -58,6 +58,22 @@ DATABASE_URL="postgresql://YOUR_USER:YOUR_PASSWORD@localhost:5432/ranqly?schema=
 
 ---
 
+### NEXT_PUBLIC_PROJECT_ID (Reown / WalletConnect)
+
+**Required to avoid 403 errors.** Reown AppKit needs a valid project ID. Without it you’ll see a **403 Forbidden** / “Failed to fetch usage” in the console and wallet connection can fail.
+
+1. Go to [Reown Dashboard](https://dashboard.reown.com) and create a project (free).
+2. Copy the **Project ID** (32 characters).
+3. In the project root create or edit `.env.local` and add:
+   ```env
+   NEXT_PUBLIC_PROJECT_ID=your_project_id_here
+   ```
+4. Restart the dev server (`npm run dev`).
+
+When `NEXT_PUBLIC_API_URL` is set, this is required for “Connect wallet” and SIWE sign-in to work properly.
+
+---
+
 ### NEXT_PUBLIC_API_URL (frontend → backend)
 
 **No signup.** This is just the URL where your backend runs:
@@ -168,7 +184,7 @@ Create `.env.local` (copy from `.env.local.example`).
 1. **Backend**
    - [ ] `backend/.env` with **DATABASE_URL** (Postgres) and **JWT_SECRET**.
    - [ ] Postgres running (e.g. `docker compose up -d postgres` in `backend/`).
-   - [ ] `npx prisma migrate dev` in `backend/`.
+   - [ ] Run migrations from the **backend** folder: `cd backend && npx prisma migrate dev` (or `npm run prisma:migrate`).
    - [ ] Start API: `npm run dev` in `backend/`.
 
 2. **Frontend**

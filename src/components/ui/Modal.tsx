@@ -2,7 +2,7 @@
 
 import { type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export interface ModalProps {
@@ -20,8 +20,8 @@ export function Modal({ open, onOpenChange, children, trigger }: ModalProps) {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in" />
         <Dialog.Content
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 w-full max-w-[420px] -translate-x-1/2 -translate-y-1/2",
-            "rounded-2xl border border-border-subtle bg-bg-secondary p-6 shadow-xl",
+            "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 -translate-y-1/2",
+            "max-h-[90vh] overflow-y-auto rounded-2xl border border-border-subtle bg-bg-secondary p-5 shadow-xl sm:p-6",
             "data-[state=open]:animate-scale-in",
             "focus:outline-none"
           )}
@@ -52,7 +52,7 @@ export function ModalHeader({
         )}
         aria-label="Close"
       >
-        <X className="h-4 w-4" />
+        <Icon name="close" size="sm" />
       </Dialog.Close>
     </div>
   );

@@ -101,6 +101,10 @@
   --shadow-glow-primary: 0 0 20px rgba(104, 116, 232, 0.4);
   --shadow-glow-success: 0 0 20px rgba(0, 217, 163, 0.4);
 
+  /* ── LAYOUT — wide screens ── */
+  --max-width-site: 120rem; /* 1920px */
+  --max-width-content: 90rem; /* 1440px — main content sections */
+
   /* ── SPACING (4px base unit) ── */
   --spacing-0_5: 2px;
   --spacing-1: 4px;
@@ -117,12 +121,33 @@
   --spacing-20: 80px;
   --spacing-24: 96px;
 
-  /* ── ANIMATIONS ── */
-  --animate-fade-in: fade-in 0.3s ease-out;
-  --animate-slide-up: slide-up 0.3s ease-out;
-  --animate-slide-down: slide-down 0.3s ease-out;
-  --animate-scale-in: scale-in 0.2s ease-out;
-  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
+  /* ── ANIMATIONS (Spec §4: duration, easing) ── */
+  --duration-instant: 0ms;
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 500ms;
+  --duration-slowest: 700ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-default);
+  --animate-slide-up: slide-up var(--duration-slow) var(--ease-snappy);
+  --animate-slide-down: slide-down var(--duration-slow) var(--ease-snappy);
+  --animate-scale-in: scale-in var(--duration-base) var(--ease-snappy);
+  --animate-pop: pop var(--duration-slower) var(--ease-spring);
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-glow-pulse: glow-pulse 2s var(--ease-default) infinite;
+}
+
+@utility max-w-site {
+  max-width: var(--max-width-site);
+}
+
+@utility max-w-content {
+  max-width: var(--max-width-content);
 }
 
 /* ============================================
@@ -131,6 +156,8 @@
    ============================================ */
 
 :root {
+  --max-width-site: 120rem;
+  --max-width-content: 90rem;
   --primary-100: #E8F0FF;
   --primary-200: #B0B5F7;
   --primary-300: #989EF2;
@@ -212,6 +239,33 @@
 @keyframes glow-pulse {
   0%, 100% { box-shadow: 0 0 20px rgba(104, 116, 232, 0.3); }
   50% { box-shadow: 0 0 30px rgba(104, 116, 232, 0.6); }
+}
+
+/* Spec §4.4: Pop — scale 0 → 1.1 → 1 */
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0); }
+  70% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Shimmer for skeletons / loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ============================================
+   REDUCED MOTION (Spec §4.6)
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ============================================

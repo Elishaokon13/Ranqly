@@ -25,8 +25,8 @@ export default async function JudgeContestPage({ params }: PageProps) {
   }
 
   return (
-    <RequireAuth message="Sign in to judge contest entries.">
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <RequireAuth>
+      <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
         <Button variant="ghost" size="sm" className="mb-6 -ml-2" asChild>
           <Link href={`/contest/${id}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />

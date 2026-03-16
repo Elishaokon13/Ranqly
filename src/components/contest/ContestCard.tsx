@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Flame, Sparkles, Trophy, Users, ArrowRight } from "lucide-react";
+import { Icon } from "@/components/icons";
 import { Badge, Progress } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import {
@@ -26,9 +26,9 @@ export function ContestCard({ contest }: ContestCardProps) {
     <Link
       href={`/contest/${contest.id}`}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-secondary",
-        "transition-all duration-200",
-        "hover:-translate-y-1 hover:border-primary-500 hover:shadow-glow-primary",
+        "group flex h-full flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-secondary",
+        "transition-[transform,box-shadow,border-color] duration-[var(--duration-slow)] [transition-timing-function:var(--ease-snappy)]",
+        "hover:-translate-y-1.5 hover:border-primary-500 hover:shadow-glow-primary",
         isCompleted && "opacity-75 hover:opacity-100"
       )}
     >
@@ -54,17 +54,17 @@ export function ContestCard({ contest }: ContestCardProps) {
         <div className="absolute top-3 left-3 z-10 flex gap-1.5">
           {contest.hot && (
             <Badge variant="hot" size="sm">
-              <Flame className="h-3 w-3" /> HOT
+              <Icon name="fire" size="xs" className="text-current" /> HOT
             </Badge>
           )}
           {isEndingSoon && (
             <Badge variant="warning" size="sm">
-              <Clock className="h-3 w-3" /> ENDING SOON
+              <Icon name="clock" size="xs" className="text-current" /> ENDING SOON
             </Badge>
           )}
           {contest.preTge && (
             <Badge variant="info" size="sm">
-              <Sparkles className="h-3 w-3" /> PRE-TGE
+              <Icon name="sparkles" size="xs" className="text-current" /> PRE-TGE
             </Badge>
           )}
           {isCompleted && (
@@ -107,16 +107,16 @@ export function ContestCard({ contest }: ContestCardProps) {
         {/* Stats Row */}
         <div className="mt-4 flex items-center gap-4 text-xs text-text-secondary">
           <div className="flex items-center gap-1">
-            <Trophy className="h-3 w-3 text-warning" />
+            <Icon name="trophy" size="xs" className="text-warning" />
             <span className="font-semibold text-text-primary">{contest.prizePool}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
+            <Icon name="users" size="xs" className="text-current" />
             <span>Top {contest.winnersCount}</span>
           </div>
           {contest.daysRemaining > 0 && (
             <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+              <Icon name="clock" size="xs" className="text-current" />
               <span>{contest.daysRemaining}d left</span>
             </div>
           )}
@@ -137,9 +137,9 @@ export function ContestCard({ contest }: ContestCardProps) {
 
         {/* CTA */}
         <div className="mt-4 pt-3 border-t border-border-subtle">
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary-400 group-hover:gap-2 transition-all">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary-400 group-hover:gap-2 transition-[gap] duration-[var(--duration-fast)]">
             {isCompleted ? "View Results" : "View Contest"}
-            <ArrowRight className="h-3 w-3" />
+            <Icon name="arrow-right" size="xs" className="text-current" />
           </span>
         </div>
       </div>

@@ -45,7 +45,7 @@ const sessions = [
 export default function SettingsPage() {
   return (
     <RequireAuth>
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -58,16 +58,16 @@ export default function SettingsPage() {
         <Tabs defaultValue="profile">
           <TabsList className="mb-6">
             <TabsTrigger value="profile" className="gap-1.5">
-              <User className="h-3.5 w-3.5" /> Profile
+              <User className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1.5">
-              <Bell className="h-3.5 w-3.5" /> Notifications
+              <Bell className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
             <TabsTrigger value="privacy" className="gap-1.5">
-              <Eye className="h-3.5 w-3.5" /> Privacy
+              <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Privacy</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5" /> Security
+              <ShieldCheck className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
           </TabsList>
 

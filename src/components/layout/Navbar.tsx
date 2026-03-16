@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, LogIn, LogOut, CircleUser } from "lucide-react";
+import { useAppKit } from "@reown/appkit/react";
+import { Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { SignInModal } from "@/components/wallet";
 import { RanqlyLogo } from "./RanqlyLogo";
+import { isApiConfigured } from "@/lib/api";
 
 const navLinks = [
   { href: "/explore", label: "Explore" },
@@ -31,12 +33,14 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const { user, signIn, signOut } = useAuth();
+  const { open: openAppKit, disconnect } = useAppKit();
+  const useWalletAuth = isApiConfigured();
 
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border-subtle bg-bg-primary/80 backdrop-blur-xl">
         <nav
-          className="mx-auto flex h-(--navbar-height) max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
+          className="mx-auto flex h-(--navbar-height) max-w-site items-center justify-between px-4 sm:px-6 lg:px-8"
           aria-label="Main navigation"
         >
           {/* Logo */}
@@ -72,23 +76,26 @@ export function Navbar() {
                   )}
                   aria-label="Dashboard / Profile"
                 >
-                  <CircleUser className="h-6 w-6" />
+                  <Icon name="user" size="lg" className="text-current" />
                 </Link>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => {
+                    if (user?.method === "wallet") disconnect?.();
+                    signOut();
+                  }}
                   className={cn(
                     "inline-flex h-(--button-height-md) items-center gap-2 rounded-xl",
                     "border border-border-subtle bg-transparent px-5 text-sm font-medium text-text-secondary",
                     "hover:bg-bg-tertiary hover:text-text-primary transition-colors"
                   )}
                 >
-                  <LogOut className="h-4 w-4" />
+                  <Icon name="log-out" size="sm" className="text-current" />
                   Sign out
                 </button>
               </>
             ) : (
               <button
-                onClick={() => setSignInModalOpen(true)}
+                onClick={() => (useWalletAuth ? openAppKit() : setSignInModalOpen(true))}
                 className={cn(
                   "inline-flex h-(--button-height-md) items-center gap-2 rounded-xl",
                   "bg-primary-500 px-5 text-sm font-semibold text-white",
@@ -96,8 +103,8 @@ export function Navbar() {
                   "active:scale-[0.98]"
                 )}
               >
-                <LogIn className="h-4 w-4" />
-                Sign in
+                <Icon name="log-in" size="sm" className="text-current" />
+                {useWalletAuth ? "Connect wallet" : "Sign in"}
               </button>
             )}
           </div>
@@ -110,9 +117,9 @@ export function Navbar() {
             aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? (
-              <X className="h-5 w-5" />
+              <Icon name="close" size="sm" className="text-current" />
             ) : (
-              <Menu className="h-5 w-5" />
+              <Icon name="menu" size="sm" className="text-current" />
             )}
           </button>
         </nav>
@@ -120,7 +127,7 @@ export function Navbar() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="border-t border-border-subtle bg-bg-secondary md:hidden">
-            <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+            <div className="mx-auto max-w-site px-4 py-4 sm:px-6">
               <div className="flex flex-col gap-1">
                 {(user ? signedInMobileLinks : mobileMenuLinks).map((link) => (
                   <Link
@@ -142,6 +149,7 @@ export function Navbar() {
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
+                      if (user?.method === "wallet") disconnect?.();
                       signOut();
                     }}
                     className={cn(
@@ -149,14 +157,14 @@ export function Navbar() {
                       "border border-border-subtle bg-transparent px-5 text-sm font-medium text-text-secondary"
                     )}
                   >
-                    <LogOut className="h-4 w-4" />
+                    <Icon name="log-out" size="sm" className="text-current" />
                     Sign out
                   </button>
                 ) : (
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setSignInModalOpen(true);
+                      useWalletAuth ? openAppKit() : setSignInModalOpen(true);
                     }}
                     className={cn(
                       "inline-flex h-(--button-height-md) w-full items-center justify-center gap-2 rounded-xl",
@@ -164,8 +172,8 @@ export function Navbar() {
                       "transition-all hover:bg-primary-600"
                     )}
                   >
-                    <LogIn className="h-4 w-4" />
-                    Sign in
+                    <Icon name="log-in" size="sm" className="text-current" />
+                    {useWalletAuth ? "Connect wallet" : "Sign in"}
                   </button>
                 )}
               </div>
@@ -174,13 +182,15 @@ export function Navbar() {
         )}
       </header>
 
-      <SignInModal
-        open={signInModalOpen}
-        onOpenChange={setSignInModalOpen}
-        onSuccess={(method, id, email) => {
-          signIn(method, id, email);
-        }}
-      />
+      {!useWalletAuth && (
+        <SignInModal
+          open={signInModalOpen}
+          onOpenChange={setSignInModalOpen}
+          onSuccess={(method, id, email) => {
+            signIn(method, id, email);
+          }}
+        />
+      )}
     </>
   );
 }
