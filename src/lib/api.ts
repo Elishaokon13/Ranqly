@@ -3,7 +3,7 @@
  * Unified server: leave NEXT_PUBLIC_API_URL unset for same-origin /api (browser) and 127.0.0.1 (SSR).
  * Set NEXT_PUBLIC_USE_MOCK_API=true to force mock data and skip backend calls.
  */
-import type { Contest, ContestCategory, ContestPhase } from "./mock-data";
+import type { Contest, ContestCategory, ContestPhase, ContestEntry, MySubmission } from "./contest-types";
 import type { UserPreferencesPatch } from "./userPreferences";
 
 const AUTH_TOKEN_KEY = "ranqly_token";
@@ -178,10 +178,16 @@ export interface MySubmissionFromApi {
   status: string;
   rank?: number | null;
   createdAt: string;
-  contest?: { id: string; slug: string; title: string; phase: string };
+  contest?: {
+    id: string;
+    slug: string;
+    title: string;
+    phase: string;
+    organizer?: { name: string | null };
+  };
 }
 
-/** POST /api/contests/:contestId/submissions — create submission (requires auth). contestId = backend id (cuid). */
+/** POST /api/contests/:contestId/submissions — create submission (requires auth). contestId = slug or backend cuid. */
 export async function createSubmission(
   contestId: string,
   body: { title: string; workUrl: string; description: string }
@@ -195,6 +201,157 @@ export async function createSubmission(
   if (!res.ok) return null;
   const data = await res.json();
   return data?.id ? { id: data.id } : null;
+}
+
+interface SubmissionAuthorRow {
+  id: string;
+  title: string;
+  description: string;
+  workUrl: string;
+  author?: { name?: string | null; walletAddress?: string | null };
+}
+
+function mapSubmissionToContestEntry(sub: SubmissionAuthorRow, contestSlug: string): ContestEntry {
+  const w = sub.author?.walletAddress;
+  const author =
+    w && w.length > 10 ? `${w.slice(0, 6)}…${w.slice(-4)}` : sub.author?.name ?? "Participant";
+  return {
+    id: sub.id,
+    contestId: contestSlug,
+    title: sub.title,
+    description: sub.description,
+    workUrl: sub.workUrl,
+    author,
+  };
+}
+
+/** GET /api/contests/:idOrSlug/submissions — map to ContestEntry for voting / leaderboard. */
+export async function fetchContestSubmissions(
+  contestIdOrSlug: string,
+  params?: { limit?: number }
+): Promise<ContestEntry[]> {
+  if (!isApiConfigured()) return [];
+  const search = new URLSearchParams();
+  if (params?.limit) search.set("limit", String(params.limit));
+  const qs = search.toString();
+  const res = await fetch(
+    apiUrl(`/api/contests/${encodeURIComponent(contestIdOrSlug)}/submissions${qs ? `?${qs}` : ""}`),
+    { cache: "no-store", headers: getAuthHeaders() }
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  const items = Array.isArray(data.items) ? data.items : [];
+  return items.map((s: SubmissionAuthorRow) => mapSubmissionToContestEntry(s, contestIdOrSlug));
+}
+
+export interface DisputeListItem {
+  id: string;
+  type: string;
+  status: string;
+  summary: string;
+  contestId: string;
+  submissionId: string;
+  submission: { id: string; title: string };
+  contest: { id: string; slug: string; title: string };
+}
+
+/** GET /api/disputes */
+export async function fetchDisputes(): Promise<DisputeListItem[]> {
+  if (!isApiConfigured()) return [];
+  const res = await fetch(apiUrl("/api/disputes"), { cache: "no-store", headers: getAuthHeaders() });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+/** GET /api/me/organized-contests */
+export async function fetchOrganizedContests(): Promise<Contest[]> {
+  if (!isApiConfigured()) return [];
+  const res = await fetch(apiUrl("/api/me/organized-contests"), {
+    cache: "no-store",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const items = Array.isArray(data.items) ? data.items : [];
+  return items.map(mapBackendContestToFrontend);
+}
+
+/** GET /api/me/judging */
+export async function fetchMyJudging(): Promise<{ contest: Contest; scored: number; total: number }[]> {
+  if (!isApiConfigured()) return [];
+  const res = await fetch(apiUrl("/api/me/judging"), { cache: "no-store", headers: getAuthHeaders() });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const items = Array.isArray(data.items) ? data.items : [];
+  return items.map((row: { contest: BackendContest; scored: number; total: number }) => ({
+    contest: mapBackendContestToFrontend(row.contest),
+    scored: row.scored,
+    total: row.total,
+  }));
+}
+
+export interface SubmissionDetailApi {
+  id: string;
+  title: string;
+  workUrl: string;
+  description: string;
+  status: string;
+  rank: number | null;
+  createdAt: string;
+  author: { id: string; name: string | null; walletAddress: string | null };
+  contest: { id: string; slug: string; title: string; phase: string };
+}
+
+/** GET /api/contests/:idOrSlug/submissions/:submissionId */
+export async function fetchSubmissionDetail(
+  contestIdOrSlug: string,
+  submissionId: string
+): Promise<SubmissionDetailApi | null> {
+  if (!isApiConfigured()) return null;
+  const res = await fetch(
+    apiUrl(
+      `/api/contests/${encodeURIComponent(contestIdOrSlug)}/submissions/${encodeURIComponent(submissionId)}`
+    ),
+    { cache: "no-store", headers: getAuthHeaders() }
+  );
+  if (!res.ok) return null;
+  return (await res.json()) as SubmissionDetailApi;
+}
+
+export function mapSubmissionDetailToMySubmission(d: SubmissionDetailApi): MySubmission {
+  const status = (["pending", "scored", "won", "withdrawn"].includes(d.status)
+    ? d.status
+    : "pending") as MySubmission["status"];
+  const submittedAt = new Date(d.createdAt).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  return {
+    id: d.id,
+    contestId: d.contest.slug,
+    title: d.title,
+    workUrl: d.workUrl,
+    description: d.description,
+    status,
+    rank: d.rank ?? undefined,
+    submittedAt,
+  };
+}
+
+/** GET /api/contests/:contestId/judges — organizer only */
+export async function fetchContestJudges(contestIdOrSlug: string): Promise<
+  { id: string; email: string | null; status: string; user: { id: string; name: string | null; email: string | null } | null }[]
+> {
+  if (!isApiConfigured()) return [];
+  const res = await fetch(apiUrl(`/api/contests/${encodeURIComponent(contestIdOrSlug)}/judges`), {
+    cache: "no-store",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 export interface AuthMeUser {

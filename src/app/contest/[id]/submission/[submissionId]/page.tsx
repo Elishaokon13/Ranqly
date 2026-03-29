@@ -1,10 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  MOCK_CONTESTS,
-  getSubmissionById,
-  PHASE_LABELS,
-} from "@/lib/mock-data";
+import { fetchContest, fetchSubmissionDetail, mapSubmissionDetailToMySubmission } from "@/lib/api";
 import { SubmissionDetailContent } from "./SubmissionDetailContent";
 import { Button } from "@/components/ui";
 import { ArrowLeft } from "lucide-react";
@@ -15,10 +11,10 @@ interface PageProps {
 
 export default async function SubmissionDetailPage({ params }: PageProps) {
   const { id: contestId, submissionId } = await params;
-  const contest = MOCK_CONTESTS.find((c) => c.id === contestId);
-  const submission = getSubmissionById(submissionId, contestId);
-
-  if (!contest || !submission) notFound();
+  const contest = await fetchContest(contestId);
+  const raw = await fetchSubmissionDetail(contestId, submissionId);
+  if (!contest || !raw) notFound();
+  const submission = mapSubmissionDetailToMySubmission(raw);
 
   return (
     <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">

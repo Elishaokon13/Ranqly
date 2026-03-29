@@ -1,36 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronRight, FileWarning } from "lucide-react";
 import { Button, Badge, Card, CardContent, EmptyState } from "@/components/ui";
-import { MOCK_CONTESTS, getEntriesByContestId } from "@/lib/mock-data";
+import { fetchDisputes, fetchContests } from "@/lib/api";
+import type { DisputeListItem } from "@/lib/api";
+import type { Contest } from "@/lib/contest-types";
 
 const DISPUTE_PHASE = "disputes";
 
 type DisputeStatus = "open" | "under_review" | "resolved";
-
-interface MockDispute {
-  id: string;
-  contestId: string;
-  entryId: string;
-  type: "plagiarism" | "rule_violation" | "other";
-  status: DisputeStatus;
-  filedAt: string;
-  summary: string;
-}
-
-const MOCK_DISPUTES: MockDispute[] = [
-  {
-    id: "disp-1",
-    contestId: "defi-risk-analysis",
-    entryId: "e-defi-risk-1",
-    type: "rule_violation",
-    status: "under_review",
-    filedAt: "2026-02-14",
-    summary: "Entry may contain copied content without attribution.",
-  },
-];
 
 const STATUS_LABELS: Record<DisputeStatus, string> = {
   open: "Open",
@@ -38,15 +19,24 @@ const STATUS_LABELS: Record<DisputeStatus, string> = {
   resolved: "Resolved",
 };
 
-const TYPE_LABELS: Record<MockDispute["type"], string> = {
+const TYPE_LABELS: Record<string, string> = {
   plagiarism: "Plagiarism",
   rule_violation: "Rule violation",
   other: "Other",
 };
 
 export default function DisputesPage() {
-  const contestsInDisputes = MOCK_CONTESTS.filter((c) => c.phase === DISPUTE_PHASE);
-  const hasDisputes = MOCK_DISPUTES.length > 0;
+  const [disputes, setDisputes] = useState<DisputeListItem[]>([]);
+  const [disputeContests, setDisputeContests] = useState<Contest[]>([]);
+
+  useEffect(() => {
+    void fetchDisputes().then(setDisputes);
+    void fetchContests({ limit: 100 }).then((c) =>
+      setDisputeContests(c.filter((x) => x.phase === DISPUTE_PHASE))
+    );
+  }, []);
+
+  const hasDisputes = disputes.length > 0;
 
   return (
     <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
@@ -66,11 +56,8 @@ export default function DisputesPage() {
 
       {hasDisputes ? (
         <div className="space-y-4">
-          {MOCK_DISPUTES.map((d, i) => {
-            const contest = MOCK_CONTESTS.find((c) => c.id === d.contestId);
-            const entries = contest ? getEntriesByContestId(d.contestId) : [];
-            const entry = entries.find((e) => e.id === d.entryId);
-
+          {disputes.map((d, i) => {
+            const st = d.status as DisputeStatus;
             return (
               <motion.div
                 key={d.id}
@@ -86,24 +73,21 @@ export default function DisputesPage() {
                           variant={d.status === "resolved" ? "success" : "warning"}
                           size="sm"
                         >
-                          {STATUS_LABELS[d.status]}
+                          {STATUS_LABELS[st] ?? d.status}
                         </Badge>
                         <Badge variant="default" size="sm">
-                          {TYPE_LABELS[d.type]}
+                          {TYPE_LABELS[d.type] ?? d.type}
                         </Badge>
                       </div>
                       <p className="mt-2 text-sm text-text-primary">
-                        {entry?.title ?? "Entry"} · {contest?.title}
+                        {d.submission.title} · {d.contest.title}
                       </p>
                       <p className="mt-1 text-xs text-text-tertiary line-clamp-1">
                         {d.summary}
                       </p>
-                      <p className="mt-1 text-xs text-text-disabled">
-                        Filed {d.filedAt}
-                      </p>
                     </div>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/contest/${d.contestId}?tab=discussion`}>
+                      <Link href={`/contest/${d.contest.slug}?tab=discussion`}>
                         View contest
                         <ChevronRight className="ml-1 h-4 w-4" />
                       </Link>
@@ -133,7 +117,7 @@ export default function DisputesPage() {
         </motion.div>
       )}
 
-      {contestsInDisputes.length > 0 && (
+      {disputeContests.length > 0 && (
         <motion.section
           className="mt-10"
           initial={{ opacity: 0, y: 16 }}
@@ -147,7 +131,7 @@ export default function DisputesPage() {
             You can file a dispute or nominate an entry from these contests.
           </p>
           <ul className="space-y-2">
-            {contestsInDisputes.map((contest) => (
+            {disputeContests.map((contest) => (
               <li key={contest.id}>
                 <Link
                   href={`/contest/${contest.id}?tab=submissions`}

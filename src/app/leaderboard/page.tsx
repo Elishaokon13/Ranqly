@@ -1,30 +1,42 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Trophy, Medal, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui";
-import {
-  MOCK_CONTESTS,
-  getEntriesByContestId,
-  PHASE_LABELS,
-} from "@/lib/mock-data";
+import { fetchContests, fetchContestSubmissions } from "@/lib/api";
+import type { Contest, ContestEntry } from "@/lib/contest-types";
+import { PHASE_LABELS } from "@/lib/contest-types";
+import { deriveDisplayScores, weightedTotal } from "@/lib/scoring";
 
 const PHASES_WITH_LEADERBOARD = ["judging", "finalization", "completed"] as const;
 
-function getMockTotal(entryId: string) {
-  const hash = entryId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const algorithm = 70 + (hash % 21);
-  const community = 65 + ((hash * 3) % 26);
-  const judge = 72 + ((hash * 7) % 19);
-  return Math.round(algorithm * 0.4 + community * 0.3 + judge * 0.3);
-}
-
 export default function LeaderboardPage() {
-  const contestsWithLeaderboard = MOCK_CONTESTS.filter((c) =>
-    PHASES_WITH_LEADERBOARD.includes(c.phase as (typeof PHASES_WITH_LEADERBOARD)[number])
-  );
+  const [sections, setSections] = useState<{ contest: Contest; entries: ContestEntry[] }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const all = await fetchContests({ limit: 100 });
+      const filtered = all.filter((c) =>
+        PHASES_WITH_LEADERBOARD.includes(c.phase as (typeof PHASES_WITH_LEADERBOARD)[number])
+      );
+      const rows = await Promise.all(
+        filtered.map(async (contest) => ({
+          contest,
+          entries: await fetchContestSubmissions(contest.id, { limit: 80 }),
+        }))
+      );
+      if (!cancelled) setSections(rows);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const contestsWithLeaderboard = sections.filter((s) => s.entries.length > 0);
 
   return (
     <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
@@ -43,18 +55,15 @@ export default function LeaderboardPage() {
       </motion.div>
 
       <div className="space-y-8">
-        {contestsWithLeaderboard.map((contest, ci) => {
-          const entries = getEntriesByContestId(contest.id);
+        {contestsWithLeaderboard.map(({ contest, entries }, ci) => {
           const ranked = entries
             .map((entry) => ({
               entry,
-              total: getMockTotal(entry.id),
+              total: weightedTotal(deriveDisplayScores(entry.id)),
             }))
             .sort((a, b) => b.total - a.total)
             .slice(0, 5)
             .map((r, i) => ({ ...r, rank: i + 1 }));
-
-          if (ranked.length === 0) return null;
 
           return (
             <motion.section

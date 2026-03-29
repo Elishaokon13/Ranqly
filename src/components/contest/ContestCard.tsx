@@ -7,7 +7,7 @@ import {
   type Contest,
   PHASE_LABELS,
   CATEGORY_LABELS,
-} from "@/lib/mock-data";
+} from "@/lib/contest-types";
 
 interface ContestCardProps {
   contest: Contest;

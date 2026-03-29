@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { findContestByIdOrSlug } from "../lib/contestLookup";
 import { RequestWithAuth, optionalAuth, requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -39,13 +40,13 @@ export const disputeCreateRouter = Router({ mergeParams: true });
 
 /** POST /api/contests/:contestId/disputes — file a dispute (authenticated user) */
 disputeCreateRouter.post("/", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
-  const contestId = req.params.contestId as string;
+  const param = req.params.contestId as string;
   const parsed = createDisputeBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
     return;
   }
-  const contest = await prisma.contest.findUnique({ where: { id: contestId } });
+  const contest = await findContestByIdOrSlug(prisma, param);
   if (!contest) {
     res.status(404).json({ error: "Contest not found" });
     return;
@@ -55,7 +56,7 @@ disputeCreateRouter.post("/", requireAuth as any, async (req: RequestWithAuth, r
     return;
   }
   const submission = await prisma.submission.findFirst({
-    where: { id: parsed.data.submissionId, contestId },
+    where: { id: parsed.data.submissionId, contestId: contest.id },
   });
   if (!submission) {
     res.status(404).json({ error: "Submission not found in this contest" });
@@ -63,7 +64,7 @@ disputeCreateRouter.post("/", requireAuth as any, async (req: RequestWithAuth, r
   }
   const dispute = await prisma.dispute.create({
     data: {
-      contestId,
+      contestId: contest.id,
       submissionId: parsed.data.submissionId,
       filedById: req.userId!,
       type: parsed.data.type,

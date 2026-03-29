@@ -1,14 +1,15 @@
 import { Router, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { findContestByIdOrSlug } from "../lib/contestLookup";
 import { RequestWithAuth, requireAuth } from "../middleware/auth";
 
 const router = Router({ mergeParams: true });
 
 /** GET /api/contests/:contestId/judges — list judge assignments (organizer) */
 router.get("/", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
-  const contestId = req.params.contestId;
-  const contest = await prisma.contest.findUnique({ where: { id: contestId } });
+  const param = req.params.contestId;
+  const contest = await findContestByIdOrSlug(prisma, param);
   if (!contest) {
     res.status(404).json({ error: "Contest not found" });
     return;
@@ -18,7 +19,7 @@ router.get("/", requireAuth as any, async (req: RequestWithAuth, res: Response) 
     return;
   }
   const assignments = await prisma.judgeAssignment.findMany({
-    where: { contestId },
+    where: { contestId: contest.id },
     include: { user: { select: { id: true, name: true, email: true } } },
     orderBy: { invitedAt: "desc" },
   });
@@ -32,13 +33,13 @@ const inviteJudgeBody = z.object({
 
 /** POST /api/contests/:contestId/judges — invite judge by email or userId (organizer) */
 router.post("/", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
-  const contestId = req.params.contestId;
+  const param = req.params.contestId;
   const parsed = inviteJudgeBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
     return;
   }
-  const contest = await prisma.contest.findUnique({ where: { id: contestId } });
+  const contest = await findContestByIdOrSlug(prisma, param);
   if (!contest) {
     res.status(404).json({ error: "Contest not found" });
     return;
@@ -49,12 +50,12 @@ router.post("/", requireAuth as any, async (req: RequestWithAuth, res: Response)
   }
   const existingByUser = parsed.data.userId
     ? await prisma.judgeAssignment.findUnique({
-        where: { contestId_userId: { contestId, userId: parsed.data.userId } },
+        where: { contestId_userId: { contestId: contest.id, userId: parsed.data.userId } },
       })
     : null;
   const existingByEmail = parsed.data.email
     ? await prisma.judgeAssignment.findFirst({
-        where: { contestId, email: parsed.data.email },
+        where: { contestId: contest.id, email: parsed.data.email },
       })
     : null;
   if (existingByUser || existingByEmail) {
@@ -63,7 +64,7 @@ router.post("/", requireAuth as any, async (req: RequestWithAuth, res: Response)
   }
   const assignment = await prisma.judgeAssignment.create({
     data: {
-      contestId,
+      contestId: contest.id,
       userId: parsed.data.userId ?? null,
       email: parsed.data.email ?? null,
     },
@@ -81,19 +82,19 @@ const submitScoresBody = z.object({
 
 /** POST /api/contests/:contestId/judge/scores — submit judge scores (assigned judge) */
 router.post("/scores", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
-  const contestId = req.params.contestId;
+  const param = req.params.contestId;
   const parsed = submitScoresBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
     return;
   }
-  const contest = await prisma.contest.findUnique({ where: { id: contestId } });
+  const contest = await findContestByIdOrSlug(prisma, param);
   if (!contest) {
     res.status(404).json({ error: "Contest not found" });
     return;
   }
   const assignment = await prisma.judgeAssignment.findFirst({
-    where: { contestId, userId: req.userId!, status: "accepted" },
+    where: { contestId: contest.id, userId: req.userId!, status: "accepted" },
   });
   if (!assignment) {
     res.status(403).json({ error: "Forbidden: you are not an accepted judge for this contest" });
@@ -105,7 +106,7 @@ router.post("/scores", requireAuth as any, async (req: RequestWithAuth, res: Res
   }
   const submissionIds = parsed.data.scores.map((s) => s.submissionId);
   const submissions = await prisma.submission.findMany({
-    where: { id: { in: submissionIds }, contestId },
+    where: { id: { in: submissionIds }, contestId: contest.id },
   });
   if (submissions.length !== new Set(submissionIds).size) {
     res.status(400).json({ error: "All submissionIds must belong to this contest" });
@@ -131,25 +132,25 @@ router.post("/scores", requireAuth as any, async (req: RequestWithAuth, res: Res
 
 /** GET /api/contests/:contestId/judge/entries — list entries for judging (for judge UI) */
 router.get("/entries", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
-  const contestId = req.params.contestId;
-  const contest = await prisma.contest.findUnique({ where: { id: contestId } });
+  const param = req.params.contestId;
+  const contest = await findContestByIdOrSlug(prisma, param);
   if (!contest) {
     res.status(404).json({ error: "Contest not found" });
     return;
   }
   const assignment = await prisma.judgeAssignment.findFirst({
-    where: { contestId, userId: req.userId!, status: "accepted" },
+    where: { contestId: contest.id, userId: req.userId!, status: "accepted" },
   });
   if (!assignment) {
     res.status(403).json({ error: "Forbidden: not an accepted judge" });
     return;
   }
   const submissions = await prisma.submission.findMany({
-    where: { contestId },
+    where: { contestId: contest.id },
     include: { author: { select: { id: true, name: true } } },
   });
   const scores = await prisma.judgeScore.findMany({
-    where: { judgeId: req.userId!, submission: { contestId } },
+    where: { judgeId: req.userId!, submission: { contestId: contest.id } },
   });
   const scoreBySubmission: Record<string, number> = {};
   scores.forEach((s) => { scoreBySubmission[s.submissionId] = s.score; });

@@ -13,13 +13,8 @@ import {
 } from "lucide-react";
 import { Button, Badge, Card, EmptyState } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import {
-  MOCK_MY_SUBMISSIONS,
-  MOCK_CONTESTS,
-  type MySubmission,
-  type SubmissionStatus,
-} from "@/lib/mock-data";
-import { isApiConfigured, fetchMySubmissions } from "@/lib/api";
+import type { SubmissionStatus } from "@/lib/contest-types";
+import { isApiConfigured, fetchMySubmissions, type MySubmissionFromApi } from "@/lib/api";
 
 const STATUS_LABELS: Record<SubmissionStatus, string> = {
   pending: "Pending",
@@ -35,8 +30,8 @@ const STATUS_VARIANT: Record<SubmissionStatus, "default" | "primary" | "success"
   withdrawn: "default",
 };
 
-function getContest(contestId: string) {
-  return MOCK_CONTESTS.find((c) => c.id === contestId);
+function toStatus(s: string): SubmissionStatus {
+  return (["pending", "scored", "won", "withdrawn"].includes(s) ? s : "pending") as SubmissionStatus;
 }
 
 function formatSubmittedAt(iso: string): string {
@@ -48,42 +43,24 @@ function formatSubmittedAt(iso: string): string {
   }
 }
 
-function mapApiSubmissionToMySubmission(item: import("@/lib/api").MySubmissionFromApi): MySubmission {
-  const status = (["pending", "scored", "won", "withdrawn"].includes(item.status)
-    ? item.status
-    : "pending") as SubmissionStatus;
-  return {
-    id: item.id,
-    contestId: item.contest?.slug ?? item.contestId,
-    title: item.title,
-    workUrl: item.workUrl,
-    description: item.description ?? "",
-    status,
-    rank: item.rank ?? undefined,
-    submittedAt: formatSubmittedAt(item.createdAt),
-  };
-}
-
 export default function SubmissionsPage() {
-  const [submissions, setSubmissions] = useState<MySubmission[]>(MOCK_MY_SUBMISSIONS);
+  const [submissions, setSubmissions] = useState<MySubmissionFromApi[]>([]);
 
   useEffect(() => {
     if (!isApiConfigured()) return;
     let cancelled = false;
     fetchMySubmissions().then((items) => {
       if (cancelled || !items) return;
-      setSubmissions(items.map(mapApiSubmissionToMySubmission));
+      setSubmissions(items);
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const handleWithdraw = (sub: MySubmission) => {
+  const handleWithdraw = (sub: MySubmissionFromApi) => {
     setSubmissions((prev) =>
-      prev.map((s) =>
-        s.id === sub.id ? { ...s, status: "withdrawn" as const } : s
-      )
+      prev.map((s) => (s.id === sub.id ? { ...s, status: "withdrawn" } : s))
     );
   };
 
@@ -109,8 +86,9 @@ export default function SubmissionsPage() {
       {activeSubmissions.length > 0 ? (
         <ul className="space-y-4">
           {activeSubmissions.map((sub, i) => {
-            const contest = getContest(sub.contestId);
-            const canEdit = contest?.phase === "submission" && sub.status === "pending";
+            const st = toStatus(sub.status);
+            const slug = sub.contest?.slug ?? sub.contestId;
+            const canEdit = sub.contest?.phase === "submission" && st === "pending";
 
             return (
               <motion.li
@@ -125,10 +103,10 @@ export default function SubmissionsPage() {
                       <h2 className="font-display text-lg font-semibold text-text-primary">
                         {sub.title}
                       </h2>
-                      <Badge variant={STATUS_VARIANT[sub.status]} size="sm">
-                        {STATUS_LABELS[sub.status]}
+                      <Badge variant={STATUS_VARIANT[st]} size="sm">
+                        {STATUS_LABELS[st]}
                       </Badge>
-                      {sub.rank != null && sub.status === "won" && (
+                      {sub.rank != null && st === "won" && (
                         <span className="inline-flex items-center gap-1 text-sm text-warning">
                           <Trophy className="h-4 w-4" />
                           Rank #{sub.rank}
@@ -137,28 +115,29 @@ export default function SubmissionsPage() {
                     </div>
                     <p className="mt-1 text-sm text-text-tertiary line-clamp-1">
                       <Link
-                        href={`/contest/${sub.contestId}`}
+                        href={`/contest/${slug}`}
                         className="hover:text-primary-400 transition-colors"
                       >
-                        {contest?.title}
+                        {sub.contest?.title ?? "Contest"}
                       </Link>
-                      {" · "}
-                      {contest?.organizer.name}
+                      {sub.contest?.organizer?.name ? (
+                        <>{" · "}{sub.contest.organizer.name}</>
+                      ) : null}
                     </p>
                     <p className="mt-1 text-xs text-text-disabled">
-                      Submitted {sub.submittedAt}
+                      Submitted {formatSubmittedAt(sub.createdAt)}
                     </p>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <Button variant="secondary" size="sm" asChild>
-                      <Link href={`/contest/${sub.contestId}/submission/${sub.id}`}>
+                      <Link href={`/contest/${slug}/submission/${sub.id}`}>
                         View
                         <ChevronRight className="ml-1 h-4 w-4" />
                       </Link>
                     </Button>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/contest/${sub.contestId}`}>
+                      <Link href={`/contest/${slug}`}>
                         View contest
                         <ChevronRight className="ml-1 h-4 w-4" />
                       </Link>
@@ -166,7 +145,7 @@ export default function SubmissionsPage() {
                     {canEdit && (
                       <>
                         <Button variant="secondary" size="sm" asChild>
-                          <Link href={`/contest/${sub.contestId}/submit?edit=${sub.id}`}>
+                          <Link href={`/contest/${slug}/submit?edit=${sub.id}`}>
                             <Pencil className="mr-1 h-3.5 w-3.5" />
                             Edit
                           </Link>

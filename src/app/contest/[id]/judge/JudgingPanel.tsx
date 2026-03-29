@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ExternalLink, CheckCircle2 } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { ContestEntry } from "@/lib/mock-data";
+import type { ContestEntry } from "@/lib/contest-types";
 
 const SCORE_MIN = 0;
 const SCORE_MAX = 100;

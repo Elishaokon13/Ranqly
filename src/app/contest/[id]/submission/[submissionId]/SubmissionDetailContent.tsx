@@ -14,7 +14,8 @@ import {
   type MySubmission,
   PHASE_LABELS,
   type ContestPhase,
-} from "@/lib/mock-data";
+} from "@/lib/contest-types";
+import { deriveDisplayScores, weightedTotal } from "@/lib/scoring";
 
 const PHASES_WITH_SCORES: ContestPhase[] = [
   "scoring",
@@ -24,20 +25,6 @@ const PHASES_WITH_SCORES: ContestPhase[] = [
   "finalization",
   "completed",
 ];
-
-/** Mock scores for display when phase allows (deterministic from submission id). */
-function getMockScores(submissionId: string) {
-  const hash = submissionId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return {
-    algorithm: 70 + (hash % 21),
-    community: 65 + ((hash * 3) % 26),
-    judge: 72 + ((hash * 7) % 19),
-  };
-}
-
-function weightedTotal(s: { algorithm: number; community: number; judge: number }) {
-  return Math.round(s.algorithm * 0.4 + s.community * 0.3 + s.judge * 0.3);
-}
 
 interface SubmissionDetailContentProps {
   contest: Contest;
@@ -49,7 +36,7 @@ export function SubmissionDetailContent({
   submission,
 }: SubmissionDetailContentProps) {
   const showScores = PHASES_WITH_SCORES.includes(contest.phase);
-  const scores = showScores ? getMockScores(submission.id) : null;
+  const scores = showScores ? deriveDisplayScores(submission.id) : null;
   const total = scores ? weightedTotal(scores) : null;
   const canEdit =
     contest.phase === "submission" && submission.status === "pending";

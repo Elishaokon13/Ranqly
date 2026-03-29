@@ -137,7 +137,17 @@ const userMeSelect = {
 router.get("/submissions", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
   const submissions = await prisma.submission.findMany({
     where: { authorId: req.userId! },
-    include: { contest: { select: { id: true, slug: true, title: true, phase: true } } },
+    include: {
+      contest: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          phase: true,
+          organizer: { select: { name: true } },
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
   res.json({ items: submissions });
@@ -270,6 +280,53 @@ router.patch("/", requireAuth as any, async (req: RequestWithAuth, res: Response
     select: userMeSelect,
   });
   res.json(user);
+});
+
+/** GET /api/me/organized-contests — contests created by the current user (organizer) */
+router.get("/organized-contests", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
+  const contests = await prisma.contest.findMany({
+    where: { organizerId: req.userId! },
+    include: { organizer: { select: { id: true, name: true, avatarUrl: true, organizerVerified: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  const list = contests.map((c) => ({ ...c, prizeAmount: c.prizeAmount.toString() }));
+  const items = await Promise.all(
+    list.map(async (c) => ({
+      ...c,
+      submissionsCount: await prisma.submission.count({ where: { contestId: c.id } }),
+    }))
+  );
+  res.json({ items });
+});
+
+/** GET /api/me/judging — contests where the user is an accepted judge (judging/finalization only) + progress */
+router.get("/judging", requireAuth as any, async (req: RequestWithAuth, res: Response) => {
+  const assignments = await prisma.judgeAssignment.findMany({
+    where: { userId: req.userId!, status: "accepted" },
+    include: {
+      contest: {
+        include: {
+          organizer: { select: { id: true, name: true, avatarUrl: true, organizerVerified: true } },
+        },
+      },
+    },
+  });
+  const phases = new Set(["judging", "finalization"]);
+  const items: Array<{
+    contest: (typeof assignments)[0]["contest"];
+    scored: number;
+    total: number;
+  }> = [];
+  for (const a of assignments) {
+    if (!phases.has(a.contest.phase)) continue;
+    const total = await prisma.submission.count({ where: { contestId: a.contestId } });
+    const scored = await prisma.judgeScore.count({
+      where: { judgeId: req.userId!, submission: { contestId: a.contestId } },
+    });
+    items.push({ contest: a.contest, scored, total });
+  }
+  res.json({ items });
 });
 
 export default router;

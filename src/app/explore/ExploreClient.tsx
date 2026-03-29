@@ -11,8 +11,8 @@ import {
 import { ContestCard } from "@/components/contest";
 import { Button, EmptyState, Select, SelectItem } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { Contest } from "@/lib/mock-data";
-import { CATEGORY_LABELS, MOCK_CONTESTS } from "@/lib/mock-data";
+import type { Contest } from "@/lib/contest-types";
+import { CATEGORY_LABELS } from "@/lib/contest-types";
 
 const statusFilters: { value: string; label: string }[] = [
   { value: "all", label: "All Statuses" },
@@ -50,7 +50,7 @@ export function ExploreClient({
   initialSearch = "",
   initialCategory = "all",
 }: ExploreClientProps) {
-  const contests = initialContests?.length ? initialContests : MOCK_CONTESTS;
+  const contests = initialContests ?? [];
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState(
@@ -107,7 +107,7 @@ export function ExploreClient({
     }
 
     return results;
-  }, [searchQuery, statusFilter, categoryFilter, prizeFilter, sortBy]);
+  }, [contests, searchQuery, statusFilter, categoryFilter, prizeFilter, sortBy]);
 
   const hasActiveFilters =
     statusFilter !== "all" ||
@@ -331,11 +331,17 @@ export function ExploreClient({
                 </motion.div>
               ))}
             </div>
+          ) : contests.length === 0 ? (
+            <EmptyState
+              icon={<Inbox className="h-12 w-12" />}
+              title="No contests yet"
+              description="Contests are loaded from the API. Run the database seed (backend: npm run db:seed) or create contests in the app when available."
+            />
           ) : (
             <EmptyState
               icon={<Inbox className="h-12 w-12" />}
-              title="No contests found"
-              description="Try adjusting your filters or search query"
+              title="No contests match your filters"
+              description="Try adjusting your filters or search query."
               action={
                 <Button variant="secondary" size="sm" onClick={resetFilters}>
                   Reset Filters

@@ -4,6 +4,7 @@ exports.disputeCreateRouter = void 0;
 const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
+const contestLookup_1 = require("../lib/contestLookup");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 const disputeTypeEnum = zod_1.z.enum(["plagiarism", "rule_violation", "other"]);
@@ -37,13 +38,13 @@ const createDisputeBody = zod_1.z.object({
 exports.disputeCreateRouter = (0, express_1.Router)({ mergeParams: true });
 /** POST /api/contests/:contestId/disputes — file a dispute (authenticated user) */
 exports.disputeCreateRouter.post("/", auth_1.requireAuth, async (req, res) => {
-    const contestId = req.params.contestId;
+    const param = req.params.contestId;
     const parsed = createDisputeBody.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
         return;
     }
-    const contest = await prisma_1.prisma.contest.findUnique({ where: { id: contestId } });
+    const contest = await (0, contestLookup_1.findContestByIdOrSlug)(prisma_1.prisma, param);
     if (!contest) {
         res.status(404).json({ error: "Contest not found" });
         return;
@@ -53,7 +54,7 @@ exports.disputeCreateRouter.post("/", auth_1.requireAuth, async (req, res) => {
         return;
     }
     const submission = await prisma_1.prisma.submission.findFirst({
-        where: { id: parsed.data.submissionId, contestId },
+        where: { id: parsed.data.submissionId, contestId: contest.id },
     });
     if (!submission) {
         res.status(404).json({ error: "Submission not found in this contest" });
@@ -61,7 +62,7 @@ exports.disputeCreateRouter.post("/", auth_1.requireAuth, async (req, res) => {
     }
     const dispute = await prisma_1.prisma.dispute.create({
         data: {
-            contestId,
+            contestId: contest.id,
             submissionId: parsed.data.submissionId,
             filedById: req.userId,
             type: parsed.data.type,

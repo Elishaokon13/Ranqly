@@ -24,7 +24,7 @@ import {
   SelectItem,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { ContestEntry } from "@/lib/mock-data";
+import type { ContestEntry } from "@/lib/contest-types";
 
 const MAX_UPVOTES = 5;
 const MAX_DOWNVOTES = 2;

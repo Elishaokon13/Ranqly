@@ -1,13 +1,11 @@
 /**
- * Seed contests + submission counts to mirror `src/lib/mock-data.ts` MOCK_CONTESTS.
- * Run from backend: `npx prisma db seed` or `npm run db:seed`
+ * Seed DB with Ranqly demo data (formerly frontend mocks). Run: `cd backend && npm run db:seed`
  */
 import "dotenv/config";
 import { PrismaClient, type ContestPhase, type ContestCategory } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-/** Keep fields in sync with frontend MOCK_CONTESTS (slug = mock `id`). */
 type SeedContest = {
   slug: string;
   title: string;
@@ -226,16 +224,30 @@ const SEED_CONTESTS: SeedContest[] = [
 ];
 
 const SLUGS = SEED_CONTESTS.map((c) => c.slug);
+/** One fewer bulk row so named demo rows keep total submission counts aligned. */
+const DEMO_NAMED_SLUGS = new Set(["best-defi-tutorial", "smart-contract-audit", "layer2-explainer"]);
 
 async function main() {
   console.log("Removing existing seed contests (by slug)…");
   await prisma.contest.deleteMany({ where: { slug: { in: SLUGS } } });
 
-  console.log("Upserting organizer + participant users…");
+  console.log("Upserting users…");
   const participant = await prisma.user.upsert({
     where: { email: "seed-participant@ranqly.local" },
     create: { email: "seed-participant@ranqly.local", name: "Seed Participant" },
     update: { name: "Seed Participant" },
+  });
+
+  const demoUser = await prisma.user.upsert({
+    where: { email: "seed-demo@ranqly.local" },
+    create: { email: "seed-demo@ranqly.local", name: "Demo Creator" },
+    update: { name: "Demo Creator" },
+  });
+
+  const judgeUser = await prisma.user.upsert({
+    where: { email: "seed-judge@ranqly.local" },
+    create: { email: "seed-judge@ranqly.local", name: "Seed Judge" },
+    update: { name: "Seed Judge" },
   });
 
   for (const row of SEED_CONTESTS) {
@@ -282,7 +294,7 @@ async function main() {
       },
     });
 
-    const n = row.submissionsCount;
+    const n = DEMO_NAMED_SLUGS.has(row.slug) ? row.submissionsCount - 1 : row.submissionsCount;
     const chunkSize = 500;
     for (let offset = 0; offset < n; offset += chunkSize) {
       const take = Math.min(chunkSize, n - offset);
@@ -292,15 +304,108 @@ async function main() {
           authorId: participant.id,
           title: `Demo submission ${offset + i + 1}`,
           workUrl: `https://example.com/demo/${row.slug}/${offset + i + 1}`,
-          description: "Seeded placeholder entry (matches explore mock submission totals).",
+          description: "Seeded placeholder entry (matches former mock totals).",
         })),
       });
     }
     totalSubs += n;
-    console.log(`  ${row.slug}: ${n} submissions`);
+    console.log(`  ${row.slug}: ${n} bulk submissions`);
   }
 
-  console.log(`Done. ${SEED_CONTESTS.length} contests, ${totalSubs} submissions total.`);
+  // Named submissions for seed-demo@ranqly.local (former MOCK_MY_SUBMISSIONS)
+  const cBest = await prisma.contest.findUniqueOrThrow({ where: { slug: "best-defi-tutorial" } });
+  const cAudit = await prisma.contest.findUniqueOrThrow({ where: { slug: "smart-contract-audit" } });
+  const cL2 = await prisma.contest.findUniqueOrThrow({ where: { slug: "layer2-explainer" } });
+
+  await prisma.submission.create({
+    data: {
+      contestId: cBest.id,
+      authorId: demoUser.id,
+      title: "Complete Guide to Yield Farming",
+      workUrl: "https://example.com/defi-guide",
+      description:
+        "A step-by-step tutorial covering liquidity pools, APY, and risk management for beginners.",
+      status: "pending",
+    },
+  });
+  await prisma.submission.create({
+    data: {
+      contestId: cAudit.id,
+      authorId: demoUser.id,
+      title: "Audit Report: Core Module",
+      workUrl: "https://example.com/audit-report",
+      description:
+        "Security audit findings for the core contract module with severity ratings and recommendations.",
+      status: "pending",
+    },
+  });
+  await prisma.submission.create({
+    data: {
+      contestId: cL2.id,
+      authorId: demoUser.id,
+      title: "Layer 2 Explained in 5 Minutes",
+      workUrl: "https://example.com/l2-video",
+      description: "Short video explainer on rollups and how L2 scaling works for a general audience.",
+      status: "won",
+      rank: 12,
+    },
+  });
+  totalSubs += 3;
+  console.log("  seed-demo@ranqly.local: 3 named submissions");
+
+  // Judge assignment + scores (former MOCK_JUDGE_PROGRESS)
+  const aiArt = await prisma.contest.findUniqueOrThrow({ where: { slug: "ai-art-competition" } });
+  await prisma.judgeAssignment.create({
+    data: {
+      contestId: aiArt.id,
+      userId: judgeUser.id,
+      status: "accepted",
+    },
+  });
+  const aiEntries = await prisma.submission.findMany({
+    where: { contestId: aiArt.id },
+    orderBy: { createdAt: "asc" },
+    take: 2,
+  });
+  for (const s of aiEntries) {
+    await prisma.judgeScore.create({
+      data: { submissionId: s.id, judgeId: judgeUser.id, score: 78 },
+    });
+  }
+  console.log("  Judge: seed-judge@ranqly.local → ai-art-competition (2 scores)");
+
+  // Disputes (former disputes page mock)
+  const risk = await prisma.contest.findUniqueOrThrow({ where: { slug: "defi-risk-analysis" } });
+  const riskSubs = await prisma.submission.findMany({
+    where: { contestId: risk.id },
+    orderBy: { createdAt: "asc" },
+    take: 2,
+  });
+  if (riskSubs.length >= 2) {
+    await prisma.dispute.create({
+      data: {
+        contestId: risk.id,
+        submissionId: riskSubs[0].id,
+        filedById: participant.id,
+        type: "plagiarism",
+        summary: "Suspected similarity with a prior published framework (seed).",
+        status: "open",
+      },
+    });
+    await prisma.dispute.create({
+      data: {
+        contestId: risk.id,
+        submissionId: riskSubs[1].id,
+        filedById: participant.id,
+        type: "rule_violation",
+        summary: "Entry may not meet quantitative evidence requirements (seed).",
+        status: "under_review",
+      },
+    });
+    console.log("  defi-risk-analysis: 2 disputes");
+  }
+
+  console.log(`Done. ${SEED_CONTESTS.length} contests, ${totalSubs} submissions (+ disputes & judge scores).`);
 }
 
 main()
