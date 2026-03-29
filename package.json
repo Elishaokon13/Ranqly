@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=20.9.0"
+    "node": "20.x"
   },
   "scripts": {
+    "prebuild": "node scripts/verify-next-tsconfig.cjs",
     "dev": "tsx server.ts",
     "dev:backend": "cd backend && npm run dev",
     "build": "next build",
+    "ci": "npm run build",
     "start": "NODE_ENV=production tsx server.ts",
     "lint": "eslint",
     "dev:full": "concurrently -n web,api -c cyan,magenta \"npm run dev:next-only\" \"npm run dev:backend\"",
@@ -57,6 +59,9 @@
     "wagmi": "^3.5.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
+  },
+  "overrides": {
+    "utf-8-validate": "6.0.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
