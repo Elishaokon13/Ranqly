@@ -32,6 +32,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: "#0A0A0F",
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -51,7 +52,7 @@ export default async function RootLayout({
           <ProjectConfigBanner />
           <Providers>
             <Navbar />
-            <main className="min-h-[calc(100vh-var(--navbar-height))]">
+            <main className="min-h-main">
               {children}
             </main>
             <Footer />

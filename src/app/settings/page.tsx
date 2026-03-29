@@ -27,18 +27,22 @@ export default function SettingsPage() {
         </h1>
 
         <Tabs defaultValue="profile">
-          <TabsList className="mb-6">
-            <TabsTrigger value="profile" className="gap-1.5">
-              <User className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Profile</span>
+          <TabsList className="mb-6 w-full max-w-full pb-0.5">
+            <TabsTrigger value="profile" className="gap-1.5" aria-label="Profile">
+              <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-1.5">
-              <Bell className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Notifications</span>
+            <TabsTrigger value="notifications" className="gap-1.5" aria-label="Notifications">
+              <Bell className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
-            <TabsTrigger value="privacy" className="gap-1.5">
-              <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Privacy</span>
+            <TabsTrigger value="privacy" className="gap-1.5" aria-label="Privacy">
+              <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">Privacy</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Security</span>
+            <TabsTrigger value="security" className="gap-1.5" aria-label="Security">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
           </TabsList>
 

@@ -149,12 +149,12 @@ export function ExploreClient({
       </motion.div>
 
       <motion.div
-        className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <div className="relative flex-1 max-w-md">
+        <div className="relative w-full min-w-0 max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-disabled" />
           <input
             type="text"
@@ -177,11 +177,12 @@ export function ExploreClient({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-2">
           <button
+            type="button"
             onClick={() => setFiltersOpen(!filtersOpen)}
             className={cn(
-              "inline-flex h-(--input-height) items-center gap-2 rounded-xl border px-4 text-sm font-medium transition-colors sm:hidden",
+              "inline-flex h-(--input-height) min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-medium transition-colors sm:hidden",
               filtersOpen
                 ? "border-primary-500 bg-primary-500/10 text-primary-400"
                 : "border-border-subtle bg-bg-secondary text-text-secondary hover:border-border-medium"
@@ -196,7 +197,11 @@ export function ExploreClient({
             )}
           </button>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select
+            value={sortBy}
+            onValueChange={setSortBy}
+            className="w-full min-w-0 sm:w-auto sm:min-w-48"
+          >
             <SelectItem value="recent">Most Recent</SelectItem>
             <SelectItem value="ending">Ending Soonest</SelectItem>
             <SelectItem value="prize">Highest Prize</SelectItem>
@@ -211,7 +216,7 @@ export function ExploreClient({
             "w-56 shrink-0 space-y-6",
             "hidden lg:block",
             filtersOpen &&
-              "!block fixed inset-0 z-40 overflow-y-auto bg-bg-primary p-6 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:p-0"
+              "block! fixed inset-0 z-40 overflow-y-auto bg-bg-primary p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:p-0 lg:pt-0 lg:pb-0 lg:pl-0 lg:pr-0"
           )}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
