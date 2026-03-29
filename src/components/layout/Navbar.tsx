@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { SignInModal } from "@/components/wallet";
 import { RanqlyLogo } from "./RanqlyLogo";
-import { isApiConfigured } from "@/lib/api";
+import { isApiConfigured, publicAssetUrl } from "@/lib/api";
 
 const navLinks = [
   { href: "/explore", label: "Explore" },
@@ -41,6 +41,8 @@ export function Navbar() {
   const useWalletAuth = isApiConfigured();
   const walletPendingSignIn = useWalletAuth && isConnected && !user;
   const connectBusy = Boolean(connectingWallet) || walletModalVisible;
+  const dashboardAvatarSrc = user?.avatarUrl ? publicAssetUrl(user.avatarUrl) : "";
+
 
   const openWalletFlow = () => {
     void openAppKit();
@@ -85,13 +87,22 @@ export function Navbar() {
                 <Link
                   href="/dashboard"
                   className={cn(
-                    "flex h-(--button-height-md) w-(--button-height-md) items-center justify-center rounded-full",
-                    "text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
-                    "focus-visible:outline-2 focus-visible:outline-primary-500"
+                    "flex h-(--button-height-md) w-(--button-height-md) shrink-0 items-center justify-center overflow-hidden rounded-full",
+                    "border border-transparent text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
+                    "focus-visible:outline-2 focus-visible:outline-primary-500",
+                    dashboardAvatarSrc && "border-border-subtle"
                   )}
                   aria-label="Dashboard / Profile"
                 >
-                  <Icon name="user" size="lg" className="text-current" />
+                  {dashboardAvatarSrc ? (
+                    <img
+                      src={dashboardAvatarSrc}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Icon name="user" size="lg" className="text-current" />
+                  )}
                 </Link>
                 <button
                   type="button"
@@ -133,19 +144,39 @@ export function Navbar() {
             )}
           </div>
 
-          <button
-            type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? (
-              <Icon name="close" size="sm" className="text-current" />
-            ) : (
-              <Icon name="menu" size="sm" className="text-current" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            {user ? (
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-subtle",
+                  "text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
+                  "focus-visible:outline-2 focus-visible:outline-primary-500"
+                )}
+                aria-label="Dashboard / Profile"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {dashboardAvatarSrc ? (
+                  <img src={dashboardAvatarSrc} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Icon name="user" size="lg" className="text-current" />
+                )}
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <Icon name="close" size="sm" className="text-current" />
+              ) : (
+                <Icon name="menu" size="sm" className="text-current" />
+              )}
+            </button>
+          </div>
         </nav>
 
         {mobileMenuOpen && (

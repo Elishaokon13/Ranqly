@@ -36,24 +36,27 @@ export function Modal({ open, onOpenChange, children, trigger }: ModalProps) {
 export function ModalHeader({
   className,
   children,
+  showClose = true,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.HTMLAttributes<HTMLDivElement> & { showClose?: boolean }) {
   return (
     <div
       className={cn("mb-6 flex items-start justify-between", className)}
       {...props}
     >
       <div>{children}</div>
-      <Dialog.Close
-        className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-lg",
-          "text-text-tertiary transition-colors",
-          "hover:bg-bg-tertiary hover:text-text-primary"
-        )}
-        aria-label="Close"
-      >
-        <Icon name="close" size="sm" />
-      </Dialog.Close>
+      {showClose ? (
+        <Dialog.Close
+          className={cn(
+            "inline-flex h-8 w-8 items-center justify-center rounded-lg",
+            "text-text-tertiary transition-colors",
+            "hover:bg-bg-tertiary hover:text-text-primary"
+          )}
+          aria-label="Close"
+        >
+          <Icon name="close" size="sm" />
+        </Dialog.Close>
+      ) : null}
     </div>
   );
 }

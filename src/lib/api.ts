@@ -23,6 +23,18 @@ export function getApiBase(): string {
   return `http://127.0.0.1:${process.env.PORT ?? "3000"}`;
 }
 
+/** Absolute URL for uploaded assets (e.g. /uploads/avatars/...) when API is on another origin. */
+export function publicAssetUrl(relativeOrAbsolute: string | null | undefined): string {
+  const p = (relativeOrAbsolute ?? "").trim();
+  if (!p) return "";
+  if (/^https?:\/\//i.test(p)) return p;
+  const base = getApiBase().replace(/\/$/, "");
+  const path = p.startsWith("/") ? p : `/${p}`;
+  if (base) return `${base}${path}`;
+  if (typeof window !== "undefined") return `${window.location.origin}${path}`;
+  return path;
+}
+
 export function isApiConfigured(): boolean {
   if (process.env.NEXT_PUBLIC_USE_MOCK_API === "true") return false;
   return true;
@@ -38,9 +50,10 @@ export function setAuthToken(token: string | null): void {
   if (typeof window === "undefined") return;
   if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
   else localStorage.removeItem(AUTH_TOKEN_KEY);
+  window.dispatchEvent(new Event("ranqly-token-change"));
 }
 
-function getAuthHeaders(): Record<string, string> {
+export function getAuthHeaders(): Record<string, string> {
   const token = getAuthToken();
   if (token) return { Authorization: `Bearer ${token}` };
   return {};
@@ -178,4 +191,70 @@ export async function createSubmission(
   if (!res.ok) return null;
   const data = await res.json();
   return data?.id ? { id: data.id } : null;
+}
+
+export interface AuthMeUser {
+  id: string;
+  walletAddress: string | null;
+  email: string | null;
+  path: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  organizerVerified?: boolean;
+}
+
+/** GET /api/auth/me */
+export async function fetchAuthMe(): Promise<AuthMeUser | null> {
+  if (!isApiConfigured()) return null;
+  const res = await fetch(apiUrl("/api/auth/me"), { cache: "no-store", headers: getAuthHeaders() });
+  if (!res.ok) return null;
+  return (await res.json()) as AuthMeUser;
+}
+
+async function readFetchErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const j = (await res.json()) as { error?: unknown; message?: unknown; details?: unknown };
+    if (typeof j.error === "string") return j.error;
+    if (typeof j.message === "string") return j.message;
+    if (typeof j.details === "string") return j.details;
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
+/** POST /api/me/avatar (multipart). Throws Error with server message on failure. */
+export async function uploadProfileAvatar(file: File): Promise<{ avatarUrl: string }> {
+  if (!isApiConfigured()) throw new Error("API is not configured.");
+  const body = new FormData();
+  body.append("avatar", file);
+  const res = await fetch(apiUrl("/api/me/avatar"), {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body,
+  });
+  if (!res.ok) {
+    const msg = await readFetchErrorMessage(res, `Upload failed (${res.status})`);
+    throw new Error(msg);
+  }
+  return (await res.json()) as { avatarUrl: string };
+}
+
+/** PATCH /api/me. Throws Error with server message on failure. */
+export async function patchMyProfile(updates: {
+  name?: string;
+  email?: string;
+  avatarUrl?: string;
+}): Promise<AuthMeUser> {
+  if (!isApiConfigured()) throw new Error("API is not configured.");
+  const res = await fetch(apiUrl("/api/me"), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const msg = await readFetchErrorMessage(res, `Save failed (${res.status})`);
+    throw new Error(msg);
+  }
+  return (await res.json()) as AuthMeUser;
 }

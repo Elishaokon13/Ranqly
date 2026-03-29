@@ -9,4 +9,5 @@ const app = createApiApp();
 
 app.listen(PORT, () => {
   console.log(`Ranqly API (standalone) listening on http://localhost:${PORT}`);
+  console.log("Profile routes: POST /api/me/avatar, PATCH /api/me, GET /api/me/submissions");
 });

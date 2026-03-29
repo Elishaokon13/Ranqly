@@ -40,6 +40,8 @@ exports.createApiApp = createApiApp;
 /**
  * Express API app (no listen). Used by unified server and standalone backend.
  */
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const express_1 = __importDefault(require("express"));
 const auth_1 = require("./middleware/auth");
 const auth_2 = __importDefault(require("./routes/auth"));
@@ -50,6 +52,15 @@ const judging_1 = __importDefault(require("./routes/judging"));
 const disputes_1 = __importStar(require("./routes/disputes"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const me_1 = __importDefault(require("./routes/me"));
+function resolvePublicUploadsRoot() {
+    const fromRoot = path_1.default.join(process.cwd(), "public", "uploads");
+    const fromBackend = path_1.default.join(process.cwd(), "..", "public", "uploads");
+    if (fs_1.default.existsSync(fromRoot))
+        return fromRoot;
+    if (fs_1.default.existsSync(fromBackend))
+        return fromBackend;
+    return null;
+}
 function buildCorsAllowlist() {
     const defaults = [
         "http://localhost:3000",
@@ -99,8 +110,13 @@ function createApiApp() {
     app.use("/api/disputes", disputes_1.default);
     app.use("/api/admin", admin_1.default);
     app.use("/api/me", me_1.default);
-    app.use((_req, res) => {
-        res.status(404).json({ error: "Not found" });
+    const uploadsRoot = resolvePublicUploadsRoot();
+    if (uploadsRoot) {
+        app.use("/uploads", express_1.default.static(uploadsRoot, { index: false }));
+    }
+    app.use((req, res) => {
+        console.warn("[ranqly-api] 404", req.method, req.originalUrl);
+        res.status(404).json({ error: "Not found", path: req.originalUrl, method: req.method });
     });
     app.use((err, _req, res, _next) => {
         console.error(err);

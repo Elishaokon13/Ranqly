@@ -8,16 +8,28 @@ const zod_1 = require("zod");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const siwe_1 = require("siwe");
 const ethers_1 = require("ethers");
+const viem_1 = require("viem");
+const chains_1 = require("viem/chains");
+const siwe_2 = require("viem/siwe");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
 const JWT_EXPIRY = "7d";
+const CHAINS_BY_ID = {
+    1: chains_1.mainnet,
+    8453: chains_1.base,
+    42161: chains_1.arbitrum,
+    10: chains_1.optimism,
+    137: chains_1.polygon,
+    11155111: chains_1.sepolia,
+    84532: chains_1.baseSepolia,
+    43114: chains_1.avalanche,
+    56: chains_1.bsc,
+};
 const router = (0, express_1.Router)();
-/** GET /api/auth/nonce — get SIWE nonce (for Reown AppKit / SIWE flow) */
 router.get("/nonce", async (_req, res) => {
     res.json({ nonce: `ranqly${Date.now()}${Math.random().toString(36).slice(2, 12)}` });
 });
-/** POST /api/auth/nonce — get SIWE nonce (legacy) */
 router.post("/nonce", async (_req, res) => {
     res.json({ nonce: `ranqly${Date.now()}${Math.random().toString(36).slice(2, 12)}` });
 });
@@ -25,7 +37,6 @@ const siweBody = zod_1.z.object({
     message: zod_1.z.string(),
     signature: zod_1.z.string(),
 });
-/** Ensure signature is 0x-prefixed hex (siwe.verify expects this). */
 function normalizeSignature(sig) {
     const s = (sig ?? "").trim();
     if (/^0x[0-9a-fA-F]+$/.test(s))
@@ -34,7 +45,43 @@ function normalizeSignature(sig) {
         return `0x${s}`;
     return s;
 }
-/** POST /api/auth/siwe — verify SIWE message + signature, create/find user, issue JWT */
+/** Hex payload byte length (0x-prefixed or not). */
+function signatureByteLength(hexSig) {
+    const s = hexSig.trim();
+    const h = s.startsWith("0x") ? s.slice(2) : s;
+    if (!/^[0-9a-fA-F]*$/i.test(h) || h.length % 2 !== 0)
+        return 0;
+    return h.length / 2;
+}
+/**
+ * Only these shapes are safe for siwe + ethers ECDSA paths.
+ * Smart accounts / ERC-6492 / AA wallets send much longer payloads — never pass those to ethers.
+ */
+function isProbableEoaSecp256k1Signature(hexSig) {
+    const n = signatureByteLength(hexSig);
+    return n === 65 || n === 64;
+}
+async function verifyWithViem(params) {
+    const chain = CHAINS_BY_ID[params.chainId] ?? chains_1.mainnet;
+    const envRpc = process.env[`SIWE_RPC_${params.chainId}`] ?? process.env.SIWE_RPC_URL;
+    try {
+        const client = (0, viem_1.createPublicClient)({
+            chain,
+            transport: envRpc ? (0, viem_1.http)(envRpc) : (0, viem_1.http)(),
+        });
+        return await (0, siwe_2.verifySiweMessage)(client, {
+            address: params.address,
+            message: params.message,
+            signature: params.signature,
+            domain: params.domain,
+            nonce: params.nonce,
+        });
+    }
+    catch (e) {
+        console.error("[SIWE] viem verifySiweMessage failed:", e);
+        return false;
+    }
+}
 router.post("/siwe", async (req, res) => {
     const parsed = siweBody.safeParse(req.body);
     if (!parsed.success) {
@@ -44,73 +91,82 @@ router.post("/siwe", async (req, res) => {
     let { message, signature } = parsed.data;
     message = (message ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     const normalizedSignature = normalizeSignature(signature);
-    let walletAddress;
-    let chainId;
+    let siweMessage;
     try {
-        const siweMessage = new siwe_1.SiweMessage(message);
-        const result = await siweMessage.verify({ signature: normalizedSignature }, { suppressExceptions: true });
-        if (!result.success) {
-            const err = result.error;
-            const addr = (siweMessage.address ?? "").toLowerCase();
-            if (addr && /^0x[a-f0-9]{40}$/.test(addr)) {
-                try {
-                    const recovered = (0, ethers_1.verifyMessage)(message, normalizedSignature);
-                    const valid = recovered?.toLowerCase() === addr;
-                    if (valid) {
-                        walletAddress = addr;
-                        chainId = siweMessage.chainId;
-                    }
-                    else {
-                        res.status(401).json({ error: "Invalid signature", details: err?.type ?? "VERIFY_FAILED" });
-                        return;
-                    }
-                }
-                catch (_) {
-                    res.status(401).json({ error: "Invalid signature", details: err?.type ?? "VERIFY_FAILED" });
-                    return;
-                }
-            }
-            else {
-                res.status(401).json({ error: "Invalid signature", details: err?.type ?? "VERIFY_FAILED" });
-                return;
-            }
-        }
-        else {
-            walletAddress = (result.data.address ?? "").toLowerCase();
-            chainId = result.data.chainId;
-        }
+        siweMessage = new siwe_1.SiweMessage(message);
     }
-    catch (err) {
-        console.error("[SIWE] parse/verify error (e.g. social/embedded):", err);
-        const addressMatch = message.match(/\n(0x[a-fA-F0-9]{40})\n/);
-        if (addressMatch) {
-            const addr = addressMatch[1].toLowerCase();
-            try {
-                const recovered = (0, ethers_1.verifyMessage)(message, normalizedSignature);
-                const valid = recovered?.toLowerCase() === addr;
-                if (valid) {
-                    walletAddress = addr;
-                    chainId = 1;
-                }
-                else {
-                    res.status(401).json({ error: "Invalid signature", details: "ETHERS_VERIFY_FAILED" });
-                    return;
-                }
-            }
-            catch (verifyErr) {
-                console.error("[SIWE] viem verify error:", verifyErr);
-                res.status(401).json({ error: "SIWE verification failed", details: String(verifyErr) });
-                return;
-            }
-        }
-        else {
-            res.status(400).json({ error: "SIWE verification failed", details: String(err) });
+    catch (e) {
+        res.status(400).json({ error: "Invalid SIWE message", details: String(e) });
+        return;
+    }
+    const addr = (siweMessage.address ?? "").toLowerCase();
+    const chainId = Number(siweMessage.chainId);
+    if (!addr || !/^0x[a-f0-9]{40}$/.test(addr)) {
+        res.status(400).json({ error: "Invalid address in message" });
+        return;
+    }
+    const domain = siweMessage.domain ?? "";
+    const nonce = siweMessage.nonce ?? "";
+    let walletAddress;
+    let outChainId = chainId;
+    const eoaShape = isProbableEoaSecp256k1Signature(normalizedSignature);
+    if (!eoaShape) {
+        const ok = await verifyWithViem({
+            message,
+            signature: normalizedSignature,
+            address: addr,
+            domain,
+            nonce,
+            chainId,
+        });
+        if (!ok) {
+            res.status(401).json({
+                error: "Invalid signature",
+                details: "SMART_ACCOUNT_VERIFY_FAILED",
+                hint: "Smart / contract wallets need a working HTTP RPC. Set SIWE_RPC_URL or SIWE_RPC_<chainId> in .env (e.g. Alchemy/Infura for that chain).",
+            });
             return;
         }
+        walletAddress = addr;
     }
-    if (!walletAddress || !/^0x[a-f0-9]{40}$/.test(walletAddress)) {
-        res.status(400).json({ error: "Invalid address from message" });
-        return;
+    else {
+        try {
+            const result = await siweMessage.verify({ signature: normalizedSignature }, { suppressExceptions: true });
+            if (result.success) {
+                walletAddress = (result.data.address ?? "").toLowerCase();
+                outChainId = result.data.chainId ?? chainId;
+            }
+        }
+        catch (e) {
+            console.error("[SIWE] siwe.verify threw:", e);
+        }
+        if (!walletAddress) {
+            try {
+                const recovered = (0, ethers_1.verifyMessage)(message, normalizedSignature);
+                if (recovered?.toLowerCase() === addr) {
+                    walletAddress = addr;
+                }
+            }
+            catch {
+                /* fall through */
+            }
+        }
+        if (!walletAddress) {
+            const ok = await verifyWithViem({
+                message,
+                signature: normalizedSignature,
+                address: addr,
+                domain,
+                nonce,
+                chainId,
+            });
+            if (ok)
+                walletAddress = addr;
+        }
+        if (!walletAddress) {
+            res.status(401).json({ error: "Invalid signature", details: "VERIFY_FAILED" });
+            return;
+        }
     }
     let user = await prisma_1.prisma.user.findUnique({ where: { walletAddress } });
     if (!user) {
@@ -122,21 +178,29 @@ router.post("/siwe", async (req, res) => {
     res.json({
         token,
         address: walletAddress,
-        chainId,
+        chainId: outChainId,
         user: {
             id: user.id,
             walletAddress: user.walletAddress,
             email: user.email,
             path: user.path,
             name: user.name,
+            avatarUrl: user.avatarUrl,
         },
     });
 });
-/** GET /api/auth/me — current user (requires auth) */
 router.get("/me", auth_1.requireAuth, async (req, res) => {
     const user = await prisma_1.prisma.user.findUnique({
         where: { id: req.userId },
-        select: { id: true, walletAddress: true, email: true, path: true, name: true, avatarUrl: true, organizerVerified: true },
+        select: {
+            id: true,
+            walletAddress: true,
+            email: true,
+            path: true,
+            name: true,
+            avatarUrl: true,
+            organizerVerified: true,
+        },
     });
     if (!user) {
         res.status(404).json({ error: "User not found" });
