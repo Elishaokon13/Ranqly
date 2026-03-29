@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import Link from "next/link";
 import { useAppKit, useAppKitState } from "@reown/appkit/react";
 import { useAccount, useDisconnect } from "wagmi";
@@ -10,6 +10,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SignInModal } from "@/components/wallet";
 import { RanqlyLogo } from "./RanqlyLogo";
 import { isApiConfigured, publicAssetUrl } from "@/lib/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui";
 
 const navLinks = [
   { href: "/explore", label: "Explore" },
@@ -27,22 +34,109 @@ const mobileMenuLinks = [
 
 const signedInMobileLinks = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/submissions", label: "My submissions" },
   ...mobileMenuLinks,
 ];
+
+const AccountAvatarTrigger = forwardRef<
+  HTMLButtonElement,
+  React.ComponentPropsWithoutRef<"button"> & {
+    className?: string;
+    dashboardAvatarSrc: string;
+  }
+>(({ className, dashboardAvatarSrc, ...props }, ref) => (
+  <button
+    ref={ref}
+    className={cn(
+      "flex shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-border-subtle",
+      "text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
+      "focus-visible:outline-2 focus-visible:outline-primary-500",
+      className
+    )}
+    aria-label="Account menu"
+    {...props}
+    type="button"
+  >
+    {dashboardAvatarSrc ? (
+      <img src={dashboardAvatarSrc} alt="" className="pointer-events-none h-full w-full object-cover" />
+    ) : (
+      <Icon name="user" size="lg" className="pointer-events-none text-current" />
+    )}
+  </button>
+));
+AccountAvatarTrigger.displayName = "AccountAvatarTrigger";
+
+function NavbarAccountMenu({
+  dashboardAvatarSrc,
+  triggerClassName,
+  onNavigate,
+}: {
+  dashboardAvatarSrc: string;
+  triggerClassName: string;
+  onNavigate?: () => void;
+}) {
+  const { user, signOut } = useAuth();
+  const { disconnect } = useDisconnect();
+
+  const handleSignOut = () => {
+    onNavigate?.();
+    if (user?.method === "wallet") disconnect?.();
+    signOut();
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <AccountAvatarTrigger className={triggerClassName} dashboardAvatarSrc={dashboardAvatarSrc} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link
+            href="/submissions"
+            className="flex cursor-pointer items-center gap-2"
+            onClick={() => onNavigate?.()}
+          >
+            <Icon name="list" size="sm" className="text-text-tertiary" />
+            My submissions
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
+            href="/settings"
+            className="flex cursor-pointer items-center gap-2"
+            onClick={() => onNavigate?.()}
+          >
+            <Icon name="settings" size="sm" className="text-text-tertiary" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-red-400 focus:bg-bg-tertiary focus:text-red-300"
+          onSelect={(e) => {
+            e.preventDefault();
+            handleSignOut();
+          }}
+        >
+          <Icon name="log-out" size="sm" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
-  const { user, signIn, signOut } = useAuth();
+  const { user, signIn } = useAuth();
   const { open: openAppKit } = useAppKit();
-  const { disconnect } = useDisconnect();
   const { isConnected } = useAccount();
   const { connectingWallet, open: walletModalVisible } = useAppKitState();
   const useWalletAuth = isApiConfigured();
   const walletPendingSignIn = useWalletAuth && isConnected && !user;
   const connectBusy = Boolean(connectingWallet) || walletModalVisible;
   const dashboardAvatarSrc = user?.avatarUrl ? publicAssetUrl(user.avatarUrl) : "";
-
 
   const openWalletFlow = () => {
     void openAppKit();
@@ -83,43 +177,10 @@ export function Navbar() {
 
           <div className="hidden items-center gap-3 md:flex">
             {user ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className={cn(
-                    "flex h-(--button-height-md) w-(--button-height-md) shrink-0 items-center justify-center overflow-hidden rounded-full",
-                    "border border-transparent text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
-                    "focus-visible:outline-2 focus-visible:outline-primary-500",
-                    dashboardAvatarSrc && "border-border-subtle"
-                  )}
-                  aria-label="Dashboard / Profile"
-                >
-                  {dashboardAvatarSrc ? (
-                    <img
-                      src={dashboardAvatarSrc}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <Icon name="user" size="lg" className="text-current" />
-                  )}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (user?.method === "wallet") disconnect?.();
-                    signOut();
-                  }}
-                  className={cn(
-                    "inline-flex h-(--button-height-md) items-center gap-2 rounded-xl",
-                    "border border-border-subtle bg-transparent px-5 text-sm font-medium text-text-secondary",
-                    "hover:bg-bg-tertiary hover:text-text-primary transition-colors"
-                  )}
-                >
-                  <Icon name="log-out" size="sm" className="text-current" />
-                  Sign out
-                </button>
-              </>
+              <NavbarAccountMenu
+                dashboardAvatarSrc={dashboardAvatarSrc}
+                triggerClassName="h-(--button-height-md) w-(--button-height-md)"
+              />
             ) : (
               <button
                 type="button"
@@ -146,22 +207,11 @@ export function Navbar() {
 
           <div className="flex items-center gap-2 md:hidden">
             {user ? (
-              <Link
-                href="/dashboard"
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-subtle",
-                  "text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
-                  "focus-visible:outline-2 focus-visible:outline-primary-500"
-                )}
-                aria-label="Dashboard / Profile"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {dashboardAvatarSrc ? (
-                  <img src={dashboardAvatarSrc} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <Icon name="user" size="lg" className="text-current" />
-                )}
-              </Link>
+              <NavbarAccountMenu
+                dashboardAvatarSrc={dashboardAvatarSrc}
+                triggerClassName="h-10 w-10"
+                onNavigate={() => setMobileMenuOpen(false)}
+              />
             ) : null}
             <button
               type="button"
@@ -198,24 +248,8 @@ export function Navbar() {
                 ))}
               </div>
 
-              <div className="mt-4 border-t border-border-subtle pt-4">
-                {user ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      if (user?.method === "wallet") disconnect?.();
-                      signOut();
-                    }}
-                    className={cn(
-                      "inline-flex h-(--button-height-md) w-full items-center justify-center gap-2 rounded-xl",
-                      "border border-border-subtle bg-transparent px-5 text-sm font-medium text-text-secondary"
-                    )}
-                  >
-                    <Icon name="log-out" size="sm" className="text-current" />
-                    Sign out
-                  </button>
-                ) : (
+              {!user ? (
+                <div className="mt-4 border-t border-border-subtle pt-4">
                   <button
                     type="button"
                     disabled={connectBusy}
@@ -233,8 +267,8 @@ export function Navbar() {
                     <Icon name="log-in" size="sm" className="text-current" />
                     {connectLabel}
                   </button>
-                )}
-              </div>
+                </div>
+              ) : null}
             </div>
           </div>
         )}

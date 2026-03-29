@@ -3,12 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
+const contestLookup_1 = require("../lib/contestLookup");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)({ mergeParams: true });
 /** GET /api/contests/:contestId/judges — list judge assignments (organizer) */
 router.get("/", auth_1.requireAuth, async (req, res) => {
-    const contestId = req.params.contestId;
-    const contest = await prisma_1.prisma.contest.findUnique({ where: { id: contestId } });
+    const param = req.params.contestId;
+    const contest = await (0, contestLookup_1.findContestByIdOrSlug)(prisma_1.prisma, param);
     if (!contest) {
         res.status(404).json({ error: "Contest not found" });
         return;
@@ -18,7 +19,7 @@ router.get("/", auth_1.requireAuth, async (req, res) => {
         return;
     }
     const assignments = await prisma_1.prisma.judgeAssignment.findMany({
-        where: { contestId },
+        where: { contestId: contest.id },
         include: { user: { select: { id: true, name: true, email: true } } },
         orderBy: { invitedAt: "desc" },
     });
@@ -30,13 +31,13 @@ const inviteJudgeBody = zod_1.z.object({
 }).refine((d) => d.email ?? d.userId, { message: "email or userId required" });
 /** POST /api/contests/:contestId/judges — invite judge by email or userId (organizer) */
 router.post("/", auth_1.requireAuth, async (req, res) => {
-    const contestId = req.params.contestId;
+    const param = req.params.contestId;
     const parsed = inviteJudgeBody.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
         return;
     }
-    const contest = await prisma_1.prisma.contest.findUnique({ where: { id: contestId } });
+    const contest = await (0, contestLookup_1.findContestByIdOrSlug)(prisma_1.prisma, param);
     if (!contest) {
         res.status(404).json({ error: "Contest not found" });
         return;
@@ -47,12 +48,12 @@ router.post("/", auth_1.requireAuth, async (req, res) => {
     }
     const existingByUser = parsed.data.userId
         ? await prisma_1.prisma.judgeAssignment.findUnique({
-            where: { contestId_userId: { contestId, userId: parsed.data.userId } },
+            where: { contestId_userId: { contestId: contest.id, userId: parsed.data.userId } },
         })
         : null;
     const existingByEmail = parsed.data.email
         ? await prisma_1.prisma.judgeAssignment.findFirst({
-            where: { contestId, email: parsed.data.email },
+            where: { contestId: contest.id, email: parsed.data.email },
         })
         : null;
     if (existingByUser || existingByEmail) {
@@ -61,7 +62,7 @@ router.post("/", auth_1.requireAuth, async (req, res) => {
     }
     const assignment = await prisma_1.prisma.judgeAssignment.create({
         data: {
-            contestId,
+            contestId: contest.id,
             userId: parsed.data.userId ?? null,
             email: parsed.data.email ?? null,
         },
@@ -77,19 +78,19 @@ const submitScoresBody = zod_1.z.object({
 });
 /** POST /api/contests/:contestId/judge/scores — submit judge scores (assigned judge) */
 router.post("/scores", auth_1.requireAuth, async (req, res) => {
-    const contestId = req.params.contestId;
+    const param = req.params.contestId;
     const parsed = submitScoresBody.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
         return;
     }
-    const contest = await prisma_1.prisma.contest.findUnique({ where: { id: contestId } });
+    const contest = await (0, contestLookup_1.findContestByIdOrSlug)(prisma_1.prisma, param);
     if (!contest) {
         res.status(404).json({ error: "Contest not found" });
         return;
     }
     const assignment = await prisma_1.prisma.judgeAssignment.findFirst({
-        where: { contestId, userId: req.userId, status: "accepted" },
+        where: { contestId: contest.id, userId: req.userId, status: "accepted" },
     });
     if (!assignment) {
         res.status(403).json({ error: "Forbidden: you are not an accepted judge for this contest" });
@@ -101,7 +102,7 @@ router.post("/scores", auth_1.requireAuth, async (req, res) => {
     }
     const submissionIds = parsed.data.scores.map((s) => s.submissionId);
     const submissions = await prisma_1.prisma.submission.findMany({
-        where: { id: { in: submissionIds }, contestId },
+        where: { id: { in: submissionIds }, contestId: contest.id },
     });
     if (submissions.length !== new Set(submissionIds).size) {
         res.status(400).json({ error: "All submissionIds must belong to this contest" });
@@ -122,25 +123,25 @@ router.post("/scores", auth_1.requireAuth, async (req, res) => {
 });
 /** GET /api/contests/:contestId/judge/entries — list entries for judging (for judge UI) */
 router.get("/entries", auth_1.requireAuth, async (req, res) => {
-    const contestId = req.params.contestId;
-    const contest = await prisma_1.prisma.contest.findUnique({ where: { id: contestId } });
+    const param = req.params.contestId;
+    const contest = await (0, contestLookup_1.findContestByIdOrSlug)(prisma_1.prisma, param);
     if (!contest) {
         res.status(404).json({ error: "Contest not found" });
         return;
     }
     const assignment = await prisma_1.prisma.judgeAssignment.findFirst({
-        where: { contestId, userId: req.userId, status: "accepted" },
+        where: { contestId: contest.id, userId: req.userId, status: "accepted" },
     });
     if (!assignment) {
         res.status(403).json({ error: "Forbidden: not an accepted judge" });
         return;
     }
     const submissions = await prisma_1.prisma.submission.findMany({
-        where: { contestId },
+        where: { contestId: contest.id },
         include: { author: { select: { id: true, name: true } } },
     });
     const scores = await prisma_1.prisma.judgeScore.findMany({
-        where: { judgeId: req.userId, submission: { contestId } },
+        where: { judgeId: req.userId, submission: { contestId: contest.id } },
     });
     const scoreBySubmission = {};
     scores.forEach((s) => { scoreBySubmission[s.submissionId] = s.score; });

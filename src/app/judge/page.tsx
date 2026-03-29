@@ -1,23 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Gavel, ChevronRight } from "lucide-react";
 import { Button, Card, CardContent, EmptyState, Progress } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import {
-  MOCK_CONTESTS,
-  getEntriesByContestId,
-  MOCK_JUDGE_PROGRESS,
-  PHASE_LABELS,
-} from "@/lib/mock-data";
-
-const JUDGING_PHASES = ["judging", "finalization"] as const;
+import { fetchMyJudging } from "@/lib/api";
+import type { Contest } from "@/lib/contest-types";
+import { PHASE_LABELS } from "@/lib/contest-types";
 
 export default function JudgeDashboardPage() {
-  const assignments = MOCK_CONTESTS.filter((c) =>
-    JUDGING_PHASES.includes(c.phase as (typeof JUDGING_PHASES)[number])
-  );
+  const [assignments, setAssignments] = useState<{ contest: Contest; scored: number; total: number }[]>([]);
+
+  useEffect(() => {
+    void fetchMyJudging().then(setAssignments);
+  }, []);
 
   return (
     <RequireAuth message="Sign in to access the judge dashboard.">
@@ -38,10 +36,7 @@ export default function JudgeDashboardPage() {
 
       {assignments.length > 0 ? (
         <ul className="space-y-4">
-          {assignments.map((contest, i) => {
-            const entries = getEntriesByContestId(contest.id);
-            const total = entries.length;
-            const scored = MOCK_JUDGE_PROGRESS[contest.id] ?? 0;
+          {assignments.map(({ contest, scored, total }, i) => {
             const pct = total > 0 ? (scored / total) * 100 : 0;
 
             return (
@@ -96,7 +91,7 @@ export default function JudgeDashboardPage() {
           <EmptyState
             icon={<Gavel className="h-12 w-12" />}
             title="No judging assignments"
-            description="You don't have any contests to judge right now. Assignments appear when a contest enters the judging phase."
+            description="You don't have any contests to judge right now. Assignments appear when a contest enters the judging phase and you're invited as a judge."
             action={
               <Button asChild>
                 <Link href="/explore">Explore contests</Link>

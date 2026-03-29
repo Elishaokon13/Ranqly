@@ -8,7 +8,7 @@ import { z } from "zod";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button, Input, Textarea, Checkbox, Card } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { Contest } from "@/lib/mock-data";
+import type { Contest } from "@/lib/contest-types";
 import { isApiConfigured, getAuthToken, createSubmission } from "@/lib/api";
 
 const schemaStep1 = z.object({

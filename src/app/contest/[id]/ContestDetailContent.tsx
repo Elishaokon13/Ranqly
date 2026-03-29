@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -42,10 +42,11 @@ import {
 import { cn } from "@/lib/utils";
 import {
   type Contest,
+  type ContestEntry,
   PHASE_LABELS,
   CATEGORY_LABELS,
-  getEntriesByContestId,
-} from "@/lib/mock-data";
+} from "@/lib/contest-types";
+import { fetchContestSubmissions } from "@/lib/api";
 import { VotingPanel, LeaderboardPanel } from "@/components/contest";
 
 const PHASES_ORDER: Contest["phase"][] = [
@@ -161,6 +162,22 @@ interface ContestDetailContentProps {
 export function ContestDetailContent({ contest }: ContestDetailContentProps) {
   const [scoringOpen, setScoringOpen] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [entries, setEntries] = useState<ContestEntry[]>([]);
+  const [entriesLoading, setEntriesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setEntriesLoading(true);
+    void fetchContestSubmissions(contest.id, { limit: 300 }).then((list) => {
+      if (!cancelled) setEntries(list);
+    }).finally(() => {
+      if (!cancelled) setEntriesLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [contest.id]);
+
   const stats = getDerivedStats(contest);
   const phaseIndex = getPhaseIndex(contest.phase);
   const phaseProgress = contest.phase === "completed" ? 100 : (phaseIndex / (PHASES_ORDER.length - 1)) * 100;
@@ -327,28 +344,36 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
             </TabsContent>
 
             <TabsContent value="leaderboard">
-              <LeaderboardPanel
-                contest={contest}
-                entries={getEntriesByContestId(contest.id)}
-              />
+              {entriesLoading ? (
+                <Card padding="lg">
+                  <CardContent>
+                    <p className="text-sm text-text-tertiary">Loading entries…</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <LeaderboardPanel contest={contest} entries={entries} />
+              )}
             </TabsContent>
 
             <TabsContent value="submissions">
               {contest.phase === "voting" ? (
-                (() => {
-                  const entries = getEntriesByContestId(contest.id);
-                  return entries.length > 0 ? (
-                    <VotingPanel contestId={contest.id} entries={entries} />
-                  ) : (
-                    <Card padding="lg">
-                      <CardContent>
-                        <p className="text-sm text-text-tertiary">
-                          No entries available to vote on yet. Check back when submissions are in.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  );
-                })()
+                entriesLoading ? (
+                  <Card padding="lg">
+                    <CardContent>
+                      <p className="text-sm text-text-tertiary">Loading entries…</p>
+                    </CardContent>
+                  </Card>
+                ) : entries.length > 0 ? (
+                  <VotingPanel contestId={contest.id} entries={entries} />
+                ) : (
+                  <Card padding="lg">
+                    <CardContent>
+                      <p className="text-sm text-text-tertiary">
+                        No entries available to vote on yet. Check back when submissions are in.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )
               ) : (
                 <Card padding="lg">
                   <CardContent>

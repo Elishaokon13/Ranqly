@@ -42,9 +42,9 @@ export function Footer() {
     <footer className="border-t border-border-subtle bg-bg-secondary">
       <div className="mx-auto max-w-site px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         {/* Top Section: Logo + Link Columns */}
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-5 md:gap-8">
           {/* Brand Column */}
-          <div className="col-span-2 md:col-span-2">
+          <div className="sm:col-span-2 md:col-span-2">
             <RanqlyLogo href="/" size="md" className="text-text-primary" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-text-secondary">
               The fair content layer for Web3. Transparent scoring, community
@@ -129,12 +129,12 @@ export function Footer() {
           <p className="text-xs text-text-disabled">
             &copy; {new Date().getFullYear()} Ranqly. All rights reserved.
           </p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 sm:justify-end">
             {legalLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-xs text-text-disabled transition-colors hover:text-text-tertiary"
+                className="inline-flex min-h-9 items-center text-xs text-text-disabled transition-colors hover:text-text-tertiary sm:min-h-0"
               >
                 {link.label}
               </Link>

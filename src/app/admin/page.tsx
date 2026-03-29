@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -17,7 +17,7 @@ import {
   HeadphonesIcon,
 } from "lucide-react";
 import { Button, Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
-import { MOCK_CONTESTS } from "@/lib/mock-data";
+import { fetchContests, fetchDisputes } from "@/lib/api";
 
 const ADMIN_TABS = [
   "overview",
@@ -31,6 +31,13 @@ const ADMIN_TABS = [
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<(typeof ADMIN_TABS)[number]>("overview");
+  const [contestCount, setContestCount] = useState<number | null>(null);
+  const [disputeCount, setDisputeCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    void fetchContests({ limit: 500 }).then((c) => setContestCount(c.length));
+    void fetchDisputes().then((d) => setDisputeCount(d.length));
+  }, []);
 
   return (
     <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
@@ -75,7 +82,7 @@ export default function AdminPage() {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-text-primary">Contests</p>
                     <p className="text-xs text-text-tertiary">
-                      {MOCK_CONTESTS.length} total
+                      {contestCount != null ? `${contestCount} total` : "…"}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-text-tertiary" />

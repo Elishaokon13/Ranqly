@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MOCK_CONTESTS } from "@/lib/mock-data";
+import { fetchContest } from "@/lib/api";
 import { SubmitEntryForm } from "./SubmitEntryForm";
 import { Button } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
@@ -12,7 +12,7 @@ interface PageProps {
 
 export default async function SubmitEntryPage({ params }: PageProps) {
   const { id } = await params;
-  const contest = MOCK_CONTESTS.find((c) => c.id === id);
+  const contest = await fetchContest(id);
   if (!contest) notFound();
 
   return (

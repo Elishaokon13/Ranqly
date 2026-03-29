@@ -10,8 +10,12 @@
     "worker:start": "node dist/worker.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "jest"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
@@ -35,6 +39,7 @@
     "@types/node": "^20.0.0",
     "prisma": "^5.0.0",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.0.0"
   }
 }

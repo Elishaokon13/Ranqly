@@ -1,14 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Plus, List, ChevronRight, BadgeCheck } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { MOCK_CONTESTS } from "@/lib/mock-data";
+import { fetchOrganizedContests } from "@/lib/api";
+import type { Contest } from "@/lib/contest-types";
 
 export default function OrganizerDashboardPage() {
-  const myContests = MOCK_CONTESTS.slice(0, 3);
+  const [myContests, setMyContests] = useState<Contest[]>([]);
+
+  useEffect(() => {
+    void fetchOrganizedContests().then(setMyContests);
+  }, []);
 
   return (
     <RequireAuth>

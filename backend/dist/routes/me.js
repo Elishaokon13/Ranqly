@@ -43,8 +43,64 @@ const uploadAvatar = (0, multer_1.default)({
         cb(null, true);
     },
 });
+const boolOpt = zod_1.z.boolean().optional();
+const notificationPrefsSchema = zod_1.z
+    .object({
+    contestUpdates: boolOpt,
+    rankChanges: boolOpt,
+    commentsOnEntries: boolOpt,
+    votingReminders: boolOpt,
+    weeklyDigest: boolOpt,
+    marketingEmails: boolOpt,
+    pushRankChanges: boolOpt,
+    pushPhaseTransitions: boolOpt,
+    pushNewContests: boolOpt,
+})
+    .strict();
+const privacyPrefsSchema = zod_1.z
+    .object({
+    publicProfile: boolOpt,
+    showSubmissions: boolOpt,
+    showContestHistory: boolOpt,
+    showEarnings: boolOpt,
+    showWinRate: boolOpt,
+    showVotesCast: boolOpt,
+    anonymizedResearch: boolOpt,
+    organizerContact: boolOpt,
+})
+    .strict();
+const securityPrefsSchema = zod_1.z
+    .object({
+    twoFactorEnabled: boolOpt,
+})
+    .strict();
+const preferencesPatchSchema = zod_1.z
+    .object({
+    notifications: notificationPrefsSchema.optional(),
+    privacy: privacyPrefsSchema.optional(),
+    security: securityPrefsSchema.optional(),
+})
+    .strict();
+function asJsonObject(v) {
+    return v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
+}
+function mergePreferences(existing, patch) {
+    const base = asJsonObject(existing);
+    const next = { ...base };
+    if (patch.notifications) {
+        next.notifications = { ...asJsonObject(base.notifications), ...patch.notifications };
+    }
+    if (patch.privacy) {
+        next.privacy = { ...asJsonObject(base.privacy), ...patch.privacy };
+    }
+    if (patch.security) {
+        next.security = { ...asJsonObject(base.security), ...patch.security };
+    }
+    return next;
+}
 const patchMeBody = zod_1.z.object({
     name: zod_1.z.string().trim().min(1).max(80).optional(),
+    email: zod_1.z.string().trim().toLowerCase().email().max(320).optional(),
     avatarUrl: zod_1.z
         .string()
         .trim()
@@ -53,17 +109,89 @@ const patchMeBody = zod_1.z.object({
         .refine((s) => !s || s.startsWith("/") || /^https?:\/\//i.test(s), {
         message: "avatarUrl must be a path or http(s) URL",
     }),
+    preferences: preferencesPatchSchema.optional(),
 });
-/** GET /api/me/submissions — current user's submissions across all contests */
+const userMeSelect = {
+    id: true,
+    walletAddress: true,
+    email: true,
+    path: true,
+    name: true,
+    avatarUrl: true,
+    preferences: true,
+    organizerVerified: true,
+};
 router.get("/submissions", auth_1.requireAuth, async (req, res) => {
     const submissions = await prisma_1.prisma.submission.findMany({
         where: { authorId: req.userId },
-        include: { contest: { select: { id: true, slug: true, title: true, phase: true } } },
+        include: {
+            contest: {
+                select: {
+                    id: true,
+                    slug: true,
+                    title: true,
+                    phase: true,
+                    organizer: { select: { name: true } },
+                },
+            },
+        },
         orderBy: { createdAt: "desc" },
     });
     res.json({ items: submissions });
 });
-/** POST /api/me/avatar — upload profile image; returns { avatarUrl } */
+router.get("/export", auth_1.requireAuth, async (req, res) => {
+    const user = await prisma_1.prisma.user.findUnique({
+        where: { id: req.userId },
+        select: {
+            id: true,
+            walletAddress: true,
+            email: true,
+            name: true,
+            avatarUrl: true,
+            path: true,
+            preferences: true,
+            organizerVerified: true,
+            createdAt: true,
+            updatedAt: true,
+            submissions: {
+                select: {
+                    id: true,
+                    title: true,
+                    status: true,
+                    workUrl: true,
+                    createdAt: true,
+                    contest: { select: { slug: true, title: true } },
+                },
+                orderBy: { createdAt: "desc" },
+                take: 500,
+            },
+            votes: {
+                select: { id: true, direction: true, createdAt: true },
+                orderBy: { createdAt: "desc" },
+                take: 200,
+            },
+        },
+    });
+    if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+    }
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="ranqly-account-export.json"');
+    res.json({ exportedAt: new Date().toISOString(), user });
+});
+router.post("/delete-account", auth_1.requireAuth, async (req, res) => {
+    const parsed = zod_1.z.object({ confirmation: zod_1.z.literal("DELETE_MY_ACCOUNT") }).safeParse(req.body);
+    if (!parsed.success) {
+        res.status(400).json({
+            error: "Invalid confirmation",
+            message: 'Send JSON body: { "confirmation": "DELETE_MY_ACCOUNT" }',
+        });
+        return;
+    }
+    await prisma_1.prisma.user.delete({ where: { id: req.userId } });
+    res.json({ ok: true });
+});
 router.post("/avatar", auth_1.requireAuth, (req, res, next) => {
     uploadAvatar.single("avatar")(req, res, (err) => {
         if (err) {
@@ -85,34 +213,89 @@ router.post("/avatar", auth_1.requireAuth, (req, res, next) => {
     });
     res.json({ avatarUrl });
 });
-/** PATCH /api/me — update name and/or avatarUrl */
 router.patch("/", auth_1.requireAuth, async (req, res) => {
     const parsed = patchMeBody.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
         return;
     }
-    const { name, avatarUrl } = parsed.data;
-    if (name === undefined && avatarUrl === undefined) {
-        res.status(400).json({ error: "Provide at least one of name, avatarUrl" });
+    const { name, email, avatarUrl, preferences } = parsed.data;
+    if (name === undefined &&
+        email === undefined &&
+        avatarUrl === undefined &&
+        preferences === undefined) {
+        res.status(400).json({ error: "Provide at least one of name, email, avatarUrl, preferences" });
         return;
+    }
+    if (email !== undefined) {
+        const taken = await prisma_1.prisma.user.findFirst({
+            where: { email, NOT: { id: req.userId } },
+            select: { id: true },
+        });
+        if (taken) {
+            res.status(409).json({ error: "That email is already linked to another account." });
+            return;
+        }
+    }
+    const data = {};
+    if (name !== undefined)
+        data.name = name;
+    if (email !== undefined)
+        data.email = email;
+    if (avatarUrl !== undefined)
+        data.avatarUrl = avatarUrl;
+    if (preferences !== undefined) {
+        const current = await prisma_1.prisma.user.findUnique({
+            where: { id: req.userId },
+            select: { preferences: true },
+        });
+        data.preferences = mergePreferences(current?.preferences ?? null, preferences);
     }
     const user = await prisma_1.prisma.user.update({
         where: { id: req.userId },
-        data: {
-            ...(name !== undefined ? { name } : {}),
-            ...(avatarUrl !== undefined ? { avatarUrl } : {}),
-        },
-        select: {
-            id: true,
-            walletAddress: true,
-            email: true,
-            path: true,
-            name: true,
-            avatarUrl: true,
-            organizerVerified: true,
-        },
+        data,
+        select: userMeSelect,
     });
     res.json(user);
+});
+/** GET /api/me/organized-contests — contests created by the current user (organizer) */
+router.get("/organized-contests", auth_1.requireAuth, async (req, res) => {
+    const contests = await prisma_1.prisma.contest.findMany({
+        where: { organizerId: req.userId },
+        include: { organizer: { select: { id: true, name: true, avatarUrl: true, organizerVerified: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+    });
+    const list = contests.map((c) => ({ ...c, prizeAmount: c.prizeAmount.toString() }));
+    const items = await Promise.all(list.map(async (c) => ({
+        ...c,
+        submissionsCount: await prisma_1.prisma.submission.count({ where: { contestId: c.id } }),
+    })));
+    res.json({ items });
+});
+/** GET /api/me/judging — contests where the user is an accepted judge (judging/finalization only) + progress */
+router.get("/judging", auth_1.requireAuth, async (req, res) => {
+    const assignments = await prisma_1.prisma.judgeAssignment.findMany({
+        where: { userId: req.userId, status: "accepted" },
+        include: {
+            contest: {
+                include: {
+                    organizer: { select: { id: true, name: true, avatarUrl: true, organizerVerified: true } },
+                },
+            },
+        },
+    });
+    const phases = new Set(["judging", "finalization"]);
+    const items = [];
+    for (const a of assignments) {
+        if (!phases.has(a.contest.phase))
+            continue;
+        const total = await prisma_1.prisma.submission.count({ where: { contestId: a.contestId } });
+        const scored = await prisma_1.prisma.judgeScore.count({
+            where: { judgeId: req.userId, submission: { contestId: a.contestId } },
+        });
+        items.push({ contest: a.contest, scored, total });
+    }
+    res.json({ items });
 });
 exports.default = router;

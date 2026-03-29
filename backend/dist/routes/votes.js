@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
+const contestLookup_1 = require("../lib/contestLookup");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)({ mergeParams: true });
 const voteItem = zod_1.z.object({
@@ -16,13 +17,13 @@ const submitVotesBody = zod_1.z.object({
 });
 /** POST /api/contests/:contestId/votes — submit votes (voter; contest in voting phase) */
 router.post("/", auth_1.requireAuth, async (req, res) => {
-    const contestId = req.params.contestId;
+    const param = req.params.contestId;
     const parsed = submitVotesBody.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
         return;
     }
-    const contest = await prisma_1.prisma.contest.findUnique({ where: { id: contestId } });
+    const contest = await (0, contestLookup_1.findContestByIdOrSlug)(prisma_1.prisma, param);
     if (!contest) {
         res.status(404).json({ error: "Contest not found" });
         return;
@@ -34,7 +35,7 @@ router.post("/", auth_1.requireAuth, async (req, res) => {
     const voterId = req.userId;
     const submissionIds = parsed.data.votes.map((v) => v.submissionId);
     const submissions = await prisma_1.prisma.submission.findMany({
-        where: { id: { in: submissionIds }, contestId },
+        where: { id: { in: submissionIds }, contestId: contest.id },
     });
     if (submissions.length !== new Set(submissionIds).size) {
         res.status(400).json({ error: "All submissionIds must belong to this contest and exist" });

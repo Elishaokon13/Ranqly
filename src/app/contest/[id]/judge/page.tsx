@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MOCK_CONTESTS, getEntriesByContestId } from "@/lib/mock-data";
+import { fetchContest, fetchContestSubmissions } from "@/lib/api";
 import { JudgingPanel } from "./JudgingPanel";
 import { Button } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
@@ -14,8 +14,8 @@ interface PageProps {
 
 export default async function JudgeContestPage({ params }: PageProps) {
   const { id } = await params;
-  const contest = MOCK_CONTESTS.find((c) => c.id === id);
-  const entries = contest ? getEntriesByContestId(contest.id) : [];
+  const contest = await fetchContest(id);
+  const entries = contest ? await fetchContestSubmissions(contest.id, { limit: 200 }) : [];
 
   if (
     !contest ||

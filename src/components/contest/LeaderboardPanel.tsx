@@ -4,7 +4,8 @@ import Link from "next/link";
 import { ExternalLink, Medal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { Contest, ContestEntry } from "@/lib/mock-data";
+import type { Contest, ContestEntry } from "@/lib/contest-types";
+import { deriveDisplayScores, weightedTotal } from "@/lib/scoring";
 
 const PHASES_WITH_LEADERBOARD: Contest["phase"][] = [
   "scoring",
@@ -14,23 +15,6 @@ const PHASES_WITH_LEADERBOARD: Contest["phase"][] = [
   "finalization",
   "completed",
 ];
-
-function getMockScores(entryId: string) {
-  const hash = entryId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return {
-    algorithm: 70 + (hash % 21),
-    community: 65 + ((hash * 3) % 26),
-    judge: 72 + ((hash * 7) % 19),
-  };
-}
-
-function weightedTotal(s: {
-  algorithm: number;
-  community: number;
-  judge: number;
-}) {
-  return Math.round(s.algorithm * 0.4 + s.community * 0.3 + s.judge * 0.3);
-}
 
 interface RankedEntry {
   entry: ContestEntry;
@@ -76,7 +60,7 @@ export function LeaderboardPanel({ contest, entries }: LeaderboardPanelProps) {
 
   const ranked: RankedEntry[] = entries
     .map((entry) => {
-      const scores = getMockScores(entry.id);
+      const scores = deriveDisplayScores(entry.id);
       const total = weightedTotal(scores);
       return {
         entry,

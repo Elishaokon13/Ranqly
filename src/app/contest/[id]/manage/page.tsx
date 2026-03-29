@@ -1,17 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Settings, Users, FileText } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { MOCK_CONTESTS } from "@/lib/mock-data";
+import { fetchContest } from "@/lib/api";
+import type { Contest } from "@/lib/contest-types";
 
 export default function ContestManagePage() {
   const params = useParams();
   const id = params?.id as string;
-  const contest = MOCK_CONTESTS.find((c) => c.id === id);
+  const [contest, setContest] = useState<Contest | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!id) return;
+    void fetchContest(id).then(setContest);
+  }, [id]);
+
+  if (contest === undefined) {
+    return (
+      <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
+        <p className="text-text-secondary">Loading contest…</p>
+      </div>
+    );
+  }
 
   if (!contest) {
     return (

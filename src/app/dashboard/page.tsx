@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Button, Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { MOCK_MY_SUBMISSIONS, MOCK_CONTESTS } from "@/lib/mock-data";
+import { fetchMySubmissions, fetchMyJudging, type MySubmissionFromApi } from "@/lib/api";
 
 const JUDGING_PHASES = ["judging", "finalization"] as const;
 const DASHBOARD_TABS = ["overview", "submissions", "analytics", "earnings", "reputation"] as const;
@@ -29,16 +29,22 @@ export default function DashboardPage() {
     ? (tabParam as (typeof DASHBOARD_TABS)[number])
     : "overview";
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [subs, setSubs] = useState<MySubmissionFromApi[]>([]);
+  const [judgeCount, setJudgeCount] = useState(0);
+
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab]);
 
-  const submissionsCount = MOCK_MY_SUBMISSIONS.filter(
-    (s) => s.status !== "withdrawn"
-  ).length;
-  const judgeAssignmentsCount = MOCK_CONTESTS.filter((c) =>
-    JUDGING_PHASES.includes(c.phase as (typeof JUDGING_PHASES)[number])
-  ).length;
+  useEffect(() => {
+    void fetchMySubmissions().then((r) => {
+      if (r) setSubs(r);
+    });
+    void fetchMyJudging().then((r) => setJudgeCount(r.length));
+  }, []);
+
+  const submissionsCount = subs.filter((s) => s.status !== "withdrawn").length;
+  const judgeAssignmentsCount = judgeCount;
 
   const links = [
     {
@@ -169,14 +175,14 @@ export default function DashboardPage() {
               <Card>
                 <CardContent className="pt-6">
                   <p className="text-sm font-medium text-text-tertiary">Total submissions</p>
-                  <p className="mt-1 font-display text-2xl font-bold text-text-primary">{MOCK_MY_SUBMISSIONS.filter((s) => s.status !== "withdrawn").length}</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-text-primary">{submissionsCount}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
                   <p className="text-sm font-medium text-text-tertiary">Contests entered</p>
                   <p className="mt-1 font-display text-2xl font-bold text-text-primary">
-                    {new Set(MOCK_MY_SUBMISSIONS.map((s) => s.contestId)).size}
+                    {new Set(subs.map((s) => s.contestId)).size}
                   </p>
                 </CardContent>
               </Card>
@@ -185,7 +191,7 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium text-text-tertiary">Top placement</p>
                   <p className="mt-1 font-display text-2xl font-bold text-text-primary">
                     {(() => {
-                      const withRank = MOCK_MY_SUBMISSIONS.filter((s) => s.rank != null);
+                      const withRank = subs.filter((s) => s.rank != null);
                       if (withRank.length === 0) return "—";
                       const best = Math.min(...withRank.map((s) => s.rank!));
                       return `#${best}`;
@@ -210,13 +216,13 @@ export default function DashboardPage() {
               <CardContent className="pt-6">
                 <h3 className="font-display font-semibold text-text-primary">Recent entries</h3>
                 <ul className="mt-4 space-y-3">
-                  {MOCK_MY_SUBMISSIONS.filter((s) => s.status !== "withdrawn").slice(0, 5).map((s) => (
+                  {subs.filter((s) => s.status !== "withdrawn").slice(0, 5).map((s) => (
                     <li key={s.id} className="flex items-center justify-between rounded-lg border border-border-subtle bg-bg-tertiary/30 px-4 py-3">
                       <span className="font-medium text-text-primary">{s.title}</span>
                       <span className="text-sm text-text-tertiary">{s.status} {s.rank != null ? `· Rank #${s.rank}` : ""}</span>
                     </li>
                   ))}
-                  {MOCK_MY_SUBMISSIONS.filter((s) => s.status !== "withdrawn").length === 0 && (
+                  {subs.filter((s) => s.status !== "withdrawn").length === 0 && (
                     <li className="rounded-lg border border-dashed border-border-subtle px-4 py-8 text-center text-sm text-text-tertiary">No submissions yet</li>
                   )}
                 </ul>
@@ -250,7 +256,7 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {MOCK_MY_SUBMISSIONS.filter((s) => s.rank != null && s.rank <= 10).map((s) => (
+                      {subs.filter((s) => s.rank != null && s.rank <= 10).map((s) => (
                         <tr key={s.id} className="border-b border-border-subtle/50">
                           <td className="py-3 pr-4 text-text-primary">{s.title}</td>
                           <td className="py-3 pr-4 text-text-secondary">#{s.rank}</td>
@@ -258,7 +264,7 @@ export default function DashboardPage() {
                           <td className="py-3 text-text-tertiary">Pending</td>
                         </tr>
                       ))}
-                      {MOCK_MY_SUBMISSIONS.filter((s) => s.rank != null && s.rank <= 10).length === 0 && (
+                      {subs.filter((s) => s.rank != null && s.rank <= 10).length === 0 && (
                         <tr><td colSpan={4} className="py-8 text-center text-text-tertiary">No earnings yet</td></tr>
                       )}
                     </tbody>
