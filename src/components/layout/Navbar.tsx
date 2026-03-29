@@ -183,6 +183,7 @@ export function Navbar() {
               />
             ) : (
               <button
+                id="ranqly-tour-connect-desktop"
                 type="button"
                 disabled={connectBusy}
                 title={
@@ -214,6 +215,7 @@ export function Navbar() {
               />
             ) : null}
             <button
+              id="ranqly-tour-menu"
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

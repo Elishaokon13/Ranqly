@@ -1,1 +1,2 @@
-export { OnboardingModal } from "./OnboardingModal";
+export { ExploreOnboardingTour } from "./ExploreOnboardingTour";
+export { DashboardWelcomeBanner } from "./DashboardWelcomeBanner";

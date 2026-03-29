@@ -13,6 +13,7 @@ import { Button, EmptyState, Select, SelectItem } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { Contest } from "@/lib/contest-types";
 import { CATEGORY_LABELS } from "@/lib/contest-types";
+import { ExploreOnboardingTour } from "@/components/onboarding";
 
 const statusFilters: { value: string; label: string }[] = [
   { value: "all", label: "All Statuses" },
@@ -356,6 +357,8 @@ export function ExploreClient({
           )}
         </div>
       </div>
+
+      <ExploreOnboardingTour />
     </div>
   );
 }

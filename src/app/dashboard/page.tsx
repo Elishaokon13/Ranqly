@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button, Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { DashboardWelcomeBanner } from "@/components/onboarding";
 import { fetchMySubmissions, fetchMyJudging, type MySubmissionFromApi } from "@/lib/api";
 
 const JUDGING_PHASES = ["judging", "finalization"] as const;
@@ -87,6 +88,7 @@ export default function DashboardPage() {
   return (
     <RequireAuth>
     <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
+      <DashboardWelcomeBanner />
       <motion.div
         className="mb-6"
         initial={{ opacity: 0, y: 20 }}
