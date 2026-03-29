@@ -16,25 +16,40 @@ import {
 } from "lucide-react";
 import { Button, Card, CardContent, Input } from "@/components/ui";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { MOCK_CONTESTS } from "@/lib/mock-data";
-
-const MOCK_JUDGES = [
-  { email: "judge1@example.com", status: "Invited", progress: "0/5" },
-  { email: "judge2@example.com", status: "Judging", progress: "3/5" },
-];
+import { fetchContest, fetchContestJudges } from "@/lib/api";
+import type { Contest } from "@/lib/contest-types";
 
 export default function ManageJudgesPage() {
   const params = useParams();
   const id = params?.id as string;
-  const contest = MOCK_CONTESTS.find((c) => c.id === id);
+  const [contest, setContest] = useState<Contest | null | undefined>(undefined);
+  const [judges, setJudges] = useState<Awaited<ReturnType<typeof fetchContestJudges>>>([]);
   const [copied, setCopied] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [judgeLink, setJudgeLink] = useState("");
 
   useEffect(() => {
+    if (!id) return;
+    void fetchContest(id).then(setContest);
+  }, [id]);
+
+  useEffect(() => {
+    if (!contest) return;
+    void fetchContestJudges(contest.id).then(setJudges);
+  }, [contest]);
+
+  useEffect(() => {
     if (typeof window !== "undefined" && contest)
       setJudgeLink(`${window.location.origin}/contest/${contest.id}/judge`);
   }, [contest]);
+
+  if (contest === undefined) {
+    return (
+      <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
+        <p className="text-text-secondary">Loading…</p>
+      </div>
+    );
+  }
 
   if (!contest) {
     return (
@@ -80,7 +95,6 @@ export default function ManageJudgesPage() {
           </p>
         </motion.div>
 
-        {/* Shareable judge link */}
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-2">
@@ -125,7 +139,6 @@ export default function ManageJudgesPage() {
           </CardContent>
         </Card>
 
-        {/* Invite by email */}
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-2">
@@ -154,7 +167,6 @@ export default function ManageJudgesPage() {
           </CardContent>
         </Card>
 
-        {/* Judge list & progress */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-4">
@@ -170,22 +182,22 @@ export default function ManageJudgesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border-subtle text-left text-text-tertiary">
-                    <th className="pb-3 pr-4 font-medium">Email</th>
+                    <th className="pb-3 pr-4 font-medium">Email / User</th>
                     <th className="pb-3 pr-4 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Progress</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_JUDGES.map((j) => (
-                    <tr key={j.email} className="border-b border-border-subtle/50">
-                      <td className="py-3 pr-4 text-text-primary">{j.email}</td>
+                  {judges.map((j) => (
+                    <tr key={j.id} className="border-b border-border-subtle/50">
+                      <td className="py-3 pr-4 text-text-primary">
+                        {j.email ?? j.user?.email ?? j.user?.name ?? "—"}
+                      </td>
                       <td className="py-3 pr-4 text-text-secondary">{j.status}</td>
-                      <td className="py-3 text-text-tertiary">{j.progress} scored</td>
                     </tr>
                   ))}
-                  {MOCK_JUDGES.length === 0 && (
+                  {judges.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="py-8 text-center text-text-tertiary">
+                      <td colSpan={2} className="py-8 text-center text-text-tertiary">
                         No judges invited yet. Share the link above or send email invites.
                       </td>
                     </tr>
@@ -193,7 +205,7 @@ export default function ManageJudgesPage() {
                 </tbody>
               </table>
             </div>
-            {MOCK_JUDGES.length > 0 && (
+            {judges.length > 0 && (
               <Button variant="ghost" size="sm" className="mt-4 inline-flex items-center gap-2">
                 <Gavel className="h-4 w-4" />
                 Remind all judges

@@ -6,7 +6,8 @@ import Image from "next/image";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { Icon } from "@/components/icons";
 import { Button, Badge, AvatarStack, HeroBackground, CountUp, TiltCard } from "@/components/ui";
-import { MOCK_CONTESTS, type Contest } from "@/lib/mock-data";
+import type { Contest } from "@/lib/contest-types";
+import { fetchContests } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const stats = [
@@ -131,6 +132,12 @@ function HeroContestCarousel({ contests }: { contests: Contest[] }) {
 }
 
 export default function Home() {
+  const [heroContests, setHeroContests] = useState<Contest[]>([]);
+
+  useEffect(() => {
+    void fetchContests({ limit: 5 }).then(setHeroContests);
+  }, []);
+
   return (
     <div className="relative min-h-0 overflow-x-hidden">
       {/* Background effects — unified gradient glow */}
@@ -229,7 +236,7 @@ export default function Home() {
 
         {/* Hero contest carousel */}
         <div className="relative flex-shrink-0">
-          <HeroContestCarousel contests={MOCK_CONTESTS.slice(0, 5)} />
+          <HeroContestCarousel contests={heroContests} />
         </div>
       </div>
 

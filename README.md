@@ -76,7 +76,9 @@ src/
   contexts/
     AuthContext.tsx          # Client‑side auth state (email/social/wallet)
   lib/
-    mock-data.ts             # Mock contests, submissions, judges, etc.
+    contest-types.ts         # Shared TypeScript types + phase/category labels
+    api.ts                   # API client (contests, me, submissions, disputes, …)
+    scoring.ts               # Deterministic display scores for leaderboard UI
     utils.ts                 # `cn` helper for className merging
 ```
 
@@ -169,20 +171,11 @@ The current implementation uses **mock data** and does not require backend URLs 
 
 ---
 
-## 🧪 Mock Data vs. Real Backend
+## 🗄️ Data & backend
 
-Right now:
-
-- Contest lists, submissions, judges, analytics, and admin queues are driven by **`src/lib/mock-data.ts`**.
-- Auth is **client‑side only** (localStorage), sufficient for UX development and demos.
-
-To connect to the production backend:
-
-1. Replace mock data access with API calls in the relevant components.
-2. Replace `AuthContext` with a real session layer (e.g., JWT cookies or NextAuth).
-3. Wire PoI NFT / voting / escrow flows to the deployed contracts and microservices.
-
-The UI is structured so that all of this can be swapped in behind existing interfaces **without visual changes**.
+- **Database:** Contest and related data are stored in PostgreSQL via Prisma (`backend/`). Run migrations and seed with `cd backend && npx prisma migrate deploy && npm run db:seed`.
+- **Frontend:** Lists and detail pages load from the unified API (`GET /api/contests`, `/api/me/submissions`, etc.) via `src/lib/api.ts`. Types live in `src/lib/contest-types.ts`.
+- **Auth:** Wallet SIWE issues a JWT; the client stores it and sends `Authorization: Bearer` on API calls.
 
 ---
 
