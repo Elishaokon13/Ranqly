@@ -7,6 +7,7 @@ const express_1 = require("express");
 const zod_1 = require("zod");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const siwe_1 = require("siwe");
+const ethers_1 = require("ethers");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
@@ -14,11 +15,11 @@ const JWT_EXPIRY = "7d";
 const router = (0, express_1.Router)();
 /** GET /api/auth/nonce — get SIWE nonce (for Reown AppKit / SIWE flow) */
 router.get("/nonce", async (_req, res) => {
-    res.json({ nonce: `ranqly-${Date.now()}-${Math.random().toString(36).slice(2, 12)}` });
+    res.json({ nonce: `ranqly${Date.now()}${Math.random().toString(36).slice(2, 12)}` });
 });
 /** POST /api/auth/nonce — get SIWE nonce (legacy) */
 router.post("/nonce", async (_req, res) => {
-    res.json({ nonce: `ranqly-${Date.now()}-${Math.random().toString(36).slice(2, 12)}` });
+    res.json({ nonce: `ranqly${Date.now()}${Math.random().toString(36).slice(2, 12)}` });
 });
 const siweBody = zod_1.z.object({
     message: zod_1.z.string(),
@@ -40,7 +41,8 @@ router.post("/siwe", async (req, res) => {
         res.status(400).json({ error: "Invalid body", details: parsed.error.flatten() });
         return;
     }
-    const { message, signature } = parsed.data;
+    let { message, signature } = parsed.data;
+    message = (message ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     const normalizedSignature = normalizeSignature(signature);
     let walletAddress;
     let chainId;
@@ -49,20 +51,62 @@ router.post("/siwe", async (req, res) => {
         const result = await siweMessage.verify({ signature: normalizedSignature }, { suppressExceptions: true });
         if (!result.success) {
             const err = result.error;
-            res.status(401).json({
-                error: "Invalid signature",
-                details: err?.type ?? "VERIFY_FAILED",
-                expected: err?.expected,
-                received: err?.received,
-            });
-            return;
+            const addr = (siweMessage.address ?? "").toLowerCase();
+            if (addr && /^0x[a-f0-9]{40}$/.test(addr)) {
+                try {
+                    const recovered = (0, ethers_1.verifyMessage)(message, normalizedSignature);
+                    const valid = recovered?.toLowerCase() === addr;
+                    if (valid) {
+                        walletAddress = addr;
+                        chainId = siweMessage.chainId;
+                    }
+                    else {
+                        res.status(401).json({ error: "Invalid signature", details: err?.type ?? "VERIFY_FAILED" });
+                        return;
+                    }
+                }
+                catch (_) {
+                    res.status(401).json({ error: "Invalid signature", details: err?.type ?? "VERIFY_FAILED" });
+                    return;
+                }
+            }
+            else {
+                res.status(401).json({ error: "Invalid signature", details: err?.type ?? "VERIFY_FAILED" });
+                return;
+            }
         }
-        walletAddress = (result.data.address ?? "").toLowerCase();
-        chainId = result.data.chainId;
+        else {
+            walletAddress = (result.data.address ?? "").toLowerCase();
+            chainId = result.data.chainId;
+        }
     }
     catch (err) {
-        res.status(400).json({ error: "SIWE verification failed", details: String(err) });
-        return;
+        console.error("[SIWE] parse/verify error (e.g. social/embedded):", err);
+        const addressMatch = message.match(/\n(0x[a-fA-F0-9]{40})\n/);
+        if (addressMatch) {
+            const addr = addressMatch[1].toLowerCase();
+            try {
+                const recovered = (0, ethers_1.verifyMessage)(message, normalizedSignature);
+                const valid = recovered?.toLowerCase() === addr;
+                if (valid) {
+                    walletAddress = addr;
+                    chainId = 1;
+                }
+                else {
+                    res.status(401).json({ error: "Invalid signature", details: "ETHERS_VERIFY_FAILED" });
+                    return;
+                }
+            }
+            catch (verifyErr) {
+                console.error("[SIWE] viem verify error:", verifyErr);
+                res.status(401).json({ error: "SIWE verification failed", details: String(verifyErr) });
+                return;
+            }
+        }
+        else {
+            res.status(400).json({ error: "SIWE verification failed", details: String(err) });
+            return;
+        }
     }
     if (!walletAddress || !/^0x[a-f0-9]{40}$/.test(walletAddress)) {
         res.status(400).json({ error: "Invalid address from message" });

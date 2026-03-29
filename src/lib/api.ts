@@ -1,22 +1,31 @@
 /**
  * Frontend API client for Ranqly backend.
- * Set NEXT_PUBLIC_API_URL (e.g. http://localhost:4000) to use the backend; otherwise mock data is used.
+ * Unified server: leave NEXT_PUBLIC_API_URL unset for same-origin /api (browser) and 127.0.0.1 (SSR).
+ * Set NEXT_PUBLIC_USE_MOCK_API=true to force mock data and skip backend calls.
  */
 import type { Contest, ContestCategory, ContestPhase } from "./mock-data";
 
 const AUTH_TOKEN_KEY = "ranqly_token";
 
-const getBase = (): string => {
-  if (typeof window !== "undefined") return process.env.NEXT_PUBLIC_API_URL ?? "";
-  return process.env.NEXT_PUBLIC_API_URL ?? "";
-};
+/** Full URL for API calls (browser may be relative). */
+export function apiUrl(path: string): string {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const explicit = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+  if (explicit) return `${explicit}${p}`;
+  if (typeof window !== "undefined") return p;
+  return `http://127.0.0.1:${process.env.PORT ?? "3000"}${p}`;
+}
 
 export function getApiBase(): string {
-  return getBase().replace(/\/$/, "");
+  const explicit = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+  if (explicit) return explicit;
+  if (typeof window !== "undefined") return "";
+  return `http://127.0.0.1:${process.env.PORT ?? "3000"}`;
 }
 
 export function isApiConfigured(): boolean {
-  return Boolean(getApiBase());
+  if (process.env.NEXT_PUBLIC_USE_MOCK_API === "true") return false;
+  return true;
 }
 
 /** Auth token for API requests (set after sign-in via backend). */
@@ -98,14 +107,15 @@ export async function fetchContests(params?: {
   limit?: number;
   offset?: number;
 }): Promise<Contest[]> {
-  const base = getApiBase();
-  if (!base) return [];
-  const url = new URL(`${base}/api/contests`);
-  if (params?.phase) url.searchParams.set("phase", params.phase);
-  if (params?.category) url.searchParams.set("category", params.category);
-  if (params?.limit) url.searchParams.set("limit", String(params.limit));
-  if (params?.offset) url.searchParams.set("offset", String(params.offset));
-  const res = await fetch(url.toString(), { cache: "no-store", headers: getAuthHeaders() });
+  if (!isApiConfigured()) return [];
+  const search = new URLSearchParams();
+  if (params?.phase) search.set("phase", params.phase);
+  if (params?.category) search.set("category", params.category);
+  if (params?.limit) search.set("limit", String(params.limit));
+  if (params?.offset) search.set("offset", String(params.offset));
+  const qs = search.toString();
+  const url = apiUrl(`/api/contests${qs ? `?${qs}` : ""}`);
+  const res = await fetch(url, { cache: "no-store", headers: getAuthHeaders() });
   if (!res.ok) return [];
   const data = await res.json();
   const items = Array.isArray(data.items) ? data.items : [];
@@ -113,19 +123,20 @@ export async function fetchContests(params?: {
 }
 
 export async function fetchContest(idOrSlug: string): Promise<Contest | null> {
-  const base = getApiBase();
-  if (!base) return null;
-  const res = await fetch(`${base}/api/contests/${encodeURIComponent(idOrSlug)}`, { cache: "no-store", headers: getAuthHeaders() });
+  if (!isApiConfigured()) return null;
+  const res = await fetch(apiUrl(`/api/contests/${encodeURIComponent(idOrSlug)}`), {
+    cache: "no-store",
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) return null;
   const c = await res.json();
   return mapBackendContestToFrontend(c);
 }
 
 export async function healthCheck(): Promise<boolean> {
-  const base = getApiBase();
-  if (!base) return false;
+  if (!isApiConfigured()) return false;
   try {
-    const res = await fetch(`${base}/health`, { cache: "no-store" });
+    const res = await fetch(apiUrl("/health"), { cache: "no-store" });
     return res.ok;
   } catch {
     return false;
@@ -134,9 +145,8 @@ export async function healthCheck(): Promise<boolean> {
 
 /** GET /api/me/submissions — current user's submissions (requires auth). */
 export async function fetchMySubmissions(): Promise<MySubmissionFromApi[] | null> {
-  const base = getApiBase();
-  if (!base) return null;
-  const res = await fetch(`${base}/api/me/submissions`, { cache: "no-store", headers: getAuthHeaders() });
+  if (!isApiConfigured()) return null;
+  const res = await fetch(apiUrl("/api/me/submissions"), { cache: "no-store", headers: getAuthHeaders() });
   if (!res.ok) return null;
   const data = await res.json();
   return Array.isArray(data.items) ? data.items : [];
@@ -159,9 +169,8 @@ export async function createSubmission(
   contestId: string,
   body: { title: string; workUrl: string; description: string }
 ): Promise<{ id: string } | null> {
-  const base = getApiBase();
-  if (!base) return null;
-  const res = await fetch(`${base}/api/contests/${encodeURIComponent(contestId)}/submissions`, {
+  if (!isApiConfigured()) return null;
+  const res = await fetch(apiUrl(`/api/contests/${encodeURIComponent(contestId)}/submissions`), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(body),

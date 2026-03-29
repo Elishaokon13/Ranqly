@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAppKit } from "@reown/appkit/react";
-import { useDisconnect } from "wagmi";
+import { useAppKit, useAppKitState } from "@reown/appkit/react";
+import { useAccount, useDisconnect } from "wagmi";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,7 +36,23 @@ export function Navbar() {
   const { user, signIn, signOut } = useAuth();
   const { open: openAppKit } = useAppKit();
   const { disconnect } = useDisconnect();
+  const { isConnected } = useAccount();
+  const { connectingWallet, open: walletModalVisible } = useAppKitState();
   const useWalletAuth = isApiConfigured();
+  const walletPendingSignIn = useWalletAuth && isConnected && !user;
+  const connectBusy = Boolean(connectingWallet) || walletModalVisible;
+
+  const openWalletFlow = () => {
+    void openAppKit();
+  };
+
+  const connectLabel = !useWalletAuth
+    ? "Sign in"
+    : walletPendingSignIn
+      ? "Finish sign-in"
+      : connectBusy
+        ? "Opening wallet…"
+        : "Connect wallet";
 
   return (
     <>
@@ -45,10 +61,8 @@ export function Navbar() {
           className="mx-auto flex h-(--navbar-height) max-w-site items-center justify-between px-4 sm:px-6 lg:px-8"
           aria-label="Main navigation"
         >
-          {/* Logo */}
           <RanqlyLogo href="/" size="md" className="text-text-primary" />
 
-          {/* Desktop Nav Links */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => (
               <Link
@@ -65,7 +79,6 @@ export function Navbar() {
             ))}
           </div>
 
-          {/* Desktop Right Side */}
           <div className="hidden items-center gap-3 md:flex">
             {user ? (
               <>
@@ -81,6 +94,7 @@ export function Navbar() {
                   <Icon name="user" size="lg" className="text-current" />
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
                     if (user?.method === "wallet") disconnect?.();
                     signOut();
@@ -97,22 +111,30 @@ export function Navbar() {
               </>
             ) : (
               <button
-                onClick={() => (useWalletAuth ? openAppKit() : setSignInModalOpen(true))}
+                type="button"
+                disabled={connectBusy}
+                title={
+                  walletPendingSignIn
+                    ? "Your wallet is connected — sign the message in the modal to complete sign-in."
+                    : undefined
+                }
+                onClick={() => (useWalletAuth ? openWalletFlow() : setSignInModalOpen(true))}
                 className={cn(
                   "inline-flex h-(--button-height-md) items-center gap-2 rounded-xl",
                   "bg-primary-500 px-5 text-sm font-semibold text-white",
                   "transition-all hover:bg-primary-600 hover:shadow-glow-primary",
-                  "active:scale-[0.98]"
+                  "active:scale-[0.98]",
+                  connectBusy && "cursor-wait opacity-80"
                 )}
               >
                 <Icon name="log-in" size="sm" className="text-current" />
-                {useWalletAuth ? "Connect wallet" : "Sign in"}
+                {connectLabel}
               </button>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <button
+            type="button"
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
@@ -126,7 +148,6 @@ export function Navbar() {
           </button>
         </nav>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="border-t border-border-subtle bg-bg-secondary md:hidden">
             <div className="mx-auto max-w-site px-4 py-4 sm:px-6">
@@ -149,6 +170,7 @@ export function Navbar() {
               <div className="mt-4 border-t border-border-subtle pt-4">
                 {user ? (
                   <button
+                    type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
                       if (user?.method === "wallet") disconnect?.();
@@ -164,18 +186,21 @@ export function Navbar() {
                   </button>
                 ) : (
                   <button
+                    type="button"
+                    disabled={connectBusy}
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      useWalletAuth ? openAppKit() : setSignInModalOpen(true);
+                      useWalletAuth ? openWalletFlow() : setSignInModalOpen(true);
                     }}
                     className={cn(
                       "inline-flex h-(--button-height-md) w-full items-center justify-center gap-2 rounded-xl",
                       "bg-primary-500 px-5 text-sm font-semibold text-white",
-                      "transition-all hover:bg-primary-600"
+                      "transition-all hover:bg-primary-600",
+                      connectBusy && "cursor-wait opacity-80"
                     )}
                   >
                     <Icon name="log-in" size="sm" className="text-current" />
-                    {useWalletAuth ? "Connect wallet" : "Sign in"}
+                    {connectLabel}
                   </button>
                 )}
               </div>

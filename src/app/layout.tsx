@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { Navbar, Footer } from "@/components/layout";
 import { Providers } from "@/components/Providers";
 import { AppKitProvider } from "@/components/AppKitProvider";
+import { ProjectConfigBanner } from "@/components/ProjectConfigBanner";
 import "./globals.css";
 
 const atemicaSans = localFont({
@@ -47,6 +48,7 @@ export default async function RootLayout({
         className={`${atemicaSans.variable} ${ibmPlexMono.variable}`}
       >
         <AppKitProvider cookies={cookies}>
+          <ProjectConfigBanner />
           <Providers>
             <Navbar />
             <main className="min-h-[calc(100vh-var(--navbar-height))]">

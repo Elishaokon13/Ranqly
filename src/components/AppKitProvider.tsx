@@ -7,15 +7,19 @@ import { WagmiProvider, type Config, cookieToInitialState } from "wagmi";
 import { wagmiAdapter, projectId, networks } from "@/config/appkit";
 import { siweConfig } from "@/config/siwe";
 import { mainnet } from "@reown/appkit/networks";
+import { getPublicOrigin } from "@/lib/site";
 
 const queryClient = new QueryClient();
 
-const metadata = {
-  name: "Ranqly",
-  description: "The Fair Content Layer for Web3",
-  url: typeof window !== "undefined" ? window.location.origin : "https://ranqly.xyz",
-  icons: ["https://ranqly.xyz/icon.png"],
-};
+function appMetadata() {
+  const origin = getPublicOrigin();
+  return {
+    name: "Ranqly",
+    description: "The Fair Content Layer for Web3",
+    url: origin,
+    icons: [`${origin}/ranqly-logo.png`],
+  };
+}
 
 createAppKit({
   adapters: [wagmiAdapter],
@@ -23,7 +27,7 @@ createAppKit({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- AppKit network type is compatible with viem Chain
   networks: networks as any,
   defaultNetwork: mainnet,
-  metadata,
+  metadata: appMetadata(),
   siweConfig,
   features: {
     analytics: false,

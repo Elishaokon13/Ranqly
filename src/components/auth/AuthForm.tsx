@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { getApiBase, setAuthToken } from "@/lib/api";
+import { isApiConfigured, apiUrl, setAuthToken } from "@/lib/api";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -117,10 +117,9 @@ export function AuthForm({ mode, onSuccess, redirectTo }: AuthFormProps) {
     async (walletId: string) => {
       setSelectedWallet(walletId);
       setStep("connecting");
-      const base = getApiBase();
-      if (base) {
+      if (isApiConfigured()) {
         try {
-          const res = await fetch(`${base}/api/auth/siwe`, {
+          const res = await fetch(apiUrl("/api/auth/siwe"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
