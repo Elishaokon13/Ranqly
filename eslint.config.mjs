@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Express API + Prisma — separate package; do not lint with Next rules on Vercel
+    "backend/**",
   ]),
 ]);
 
