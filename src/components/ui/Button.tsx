@@ -1,6 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const variants = {
@@ -49,7 +49,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const sharedClassName = cn(
       "inline-flex items-center justify-center font-semibold",
-      "transition-all duration-150 ease-out",
+      "transition-[transform,box-shadow,background-color,border-color] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out)]",
+      "hover:-translate-y-0.5",
       "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
       "disabled:pointer-events-none disabled:opacity-50",
       "active:scale-[0.98]",
@@ -74,7 +75,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         {...props}
       >
-        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading && <Icon name="loader" size="sm" className="animate-spin" />}
         {children}
       </button>
     );

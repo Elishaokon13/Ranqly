@@ -21,7 +21,7 @@ export default async function SubmissionDetailPage({ params }: PageProps) {
   if (!contest || !submission) notFound();
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/contest/${contestId}`}>

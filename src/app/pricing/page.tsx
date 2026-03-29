@@ -16,7 +16,7 @@ import {
   Building2,
 } from "lucide-react";
 import Link from "next/link";
-import { Button, Badge, Card, Separator, Input } from "@/components/ui";
+import { Button, Badge, Card, Separator, Input, HeroBackground } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 const tiers = [
@@ -123,20 +123,35 @@ function FeatureValue({ value }: { value: string | boolean }) {
   return <span className="text-sm text-text-primary">{value}</span>;
 }
 
+function costFromParticipants(participants: number): number {
+  if (participants <= 50) return 5000;
+  if (participants <= 250) return 5000 + (participants - 50) * 35;
+  return 12000 + (participants - 250) * 52;
+}
+
+function participantsFromCost(cost: number): number {
+  if (cost <= 5000) return Math.round(Math.max(10, Math.min(50, (50 * cost) / 5000)));
+  if (cost <= 12000) return Math.round(Math.max(50, Math.min(250, 50 + (cost - 5000) / 35)));
+  return Math.round(Math.max(250, Math.min(1000, 250 + (cost - 12000) / 52)));
+}
+
 export default function PricingPage() {
   const [participants, setParticipants] = useState(100);
 
-  const estimatedCost = (() => {
-    if (participants <= 50) return 5000;
-    if (participants <= 250) return 5000 + (participants - 50) * 35;
-    return 12000 + (participants - 250) * 52;
-  })();
+  const estimatedCost = costFromParticipants(participants);
 
   const recommendedTier = (() => {
     if (participants <= 50) return "Starter";
     if (participants <= 250) return "Growth";
     return "Enterprise";
   })();
+
+  const handleCostChange = (value: string) => {
+    const parsed = parseInt(value.replace(/\D/g, ""), 10);
+    if (!Number.isNaN(parsed) && parsed >= 0) {
+      setParticipants(participantsFromCost(parsed));
+    }
+  };
 
   return (
     <div>
@@ -145,13 +160,14 @@ export default function PricingPage() {
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-1/3 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary-500/10 blur-[120px]" />
         </div>
-        <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
+        <HeroBackground />
+        <div className="relative mx-auto max-w-content px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
           <motion.div {...fadeIn} transition={{ duration: 0.6 }}>
             <Badge variant="primary" size="lg" className="mb-6">
               <Sparkles className="h-3.5 w-3.5" />
               For Organizers
             </Badge>
-            <h1 className="text-4xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl">
               Launch your{" "}
               <span className="bg-linear-to-r from-primary-400 via-primary-300 to-accent-500 bg-clip-text text-transparent">
                 campaign
@@ -167,14 +183,14 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Cards */}
-      <section className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-3">
           {tiers.map((tier, i) => (
             <motion.div
               key={tier.name}
               {...fadeIn}
               transition={{ delay: i * 0.15 }}
-              className="relative"
+              className="relative h-full"
             >
               {tier.popular && (
                 <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2">
@@ -244,7 +260,7 @@ export default function PricingPage() {
                   className="w-full"
                   asChild
                 >
-                  <Link href={tier.name === "Enterprise" ? "/contact" : "/explore"}>
+                  <Link href={tier.name === "Enterprise" ? "/contact" : `/signup?redirect=${encodeURIComponent("/dashboard/organizer")}`}>
                     {tier.cta}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -257,7 +273,7 @@ export default function PricingPage() {
 
       {/* Comparison Table */}
       <section className="border-t border-border-subtle bg-bg-secondary/50">
-        <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-12" {...fadeIn} transition={{ duration: 0.6 }}>
             <h2 className="text-3xl font-bold text-text-primary font-display">
               Compare plans
@@ -272,7 +288,7 @@ export default function PricingPage() {
             {...fadeIn}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <table className="w-full min-w-[640px]">
+            <table className="w-full min-w-[560px]">
               <thead>
                 <tr className="border-b border-border-subtle">
                   <th className="pb-4 text-left text-sm font-medium text-text-tertiary">
@@ -369,10 +385,29 @@ export default function PricingPage() {
 
                 <Separator />
 
-                <div className="text-center">
-                  <p className="text-sm text-text-tertiary mb-1">Estimated Cost</p>
-                  <p className="text-4xl font-extrabold text-text-primary font-display">
-                    ${estimatedCost.toLocaleString()}
+                <div className="w-full max-w-xs mx-auto text-center">
+                  <label
+                    htmlFor="estimated-cost"
+                    className="mb-2 block text-sm font-medium text-text-primary"
+                  >
+                    Estimated Cost
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary font-display">
+                      $
+                    </span>
+                    <Input
+                      id="estimated-cost"
+                      type="number"
+                      min={5000}
+                      step={500}
+                      value={estimatedCost}
+                      onChange={(e) => handleCostChange(e.target.value)}
+                      className="pl-7 text-center text-2xl font-extrabold font-display sm:text-3xl h-12"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-text-tertiary">
+                    Edit cost to see expected participants
                   </p>
                 </div>
 
@@ -386,7 +421,7 @@ export default function PricingPage() {
                   </p>
                 </div>
 
-                <div className="grid w-full grid-cols-3 gap-2 text-center">
+                <div className="grid w-full grid-cols-1 gap-2 text-center sm:grid-cols-3">
                   {[
                     {
                       label: "Per Creator",
@@ -414,7 +449,7 @@ export default function PricingPage() {
                 </div>
 
                 <Button className="w-full" asChild>
-                  <Link href="/explore">
+                  <Link href={recommendedTier === "Enterprise" ? "/contact" : `/signup?redirect=${encodeURIComponent("/dashboard/organizer")}`}>
                     {recommendedTier === "Enterprise"
                       ? "Book a Demo"
                       : "Launch Your Campaign"}

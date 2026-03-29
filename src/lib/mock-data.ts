@@ -26,6 +26,8 @@ export interface Contest {
   bannerImage?: string;
   hot: boolean;
   preTge: boolean;
+  /** Backend DB id (cuid); set when contest is from API. Use for API calls that need contestId. */
+  backendId?: string;
 }
 
 export const MOCK_CONTESTS: Contest[] = [

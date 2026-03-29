@@ -13,7 +13,7 @@ import {
   Github,
   MessageCircle,
 } from "lucide-react";
-import { Button, Input, AvatarStack, Badge } from "@/components/ui";
+import { Button, Input, AvatarStack, Badge, HeroBackground } from "@/components/ui";
 
 type FormState = "idle" | "loading" | "success" | "error";
 
@@ -53,8 +53,9 @@ export default function WaitlistPage() {
         <div className="absolute -bottom-1/4 -left-1/4 h-[600px] w-[600px] rounded-full bg-accent-500/10 blur-[100px]" />
         <div className="absolute -right-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-primary-700/15 blur-[100px]" />
       </div>
+      <HeroBackground />
 
-      <div className="relative mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
+      <div className="relative mx-auto max-w-content px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
         {/* Hero */}
         <motion.div
           className="text-center"
@@ -67,7 +68,7 @@ export default function WaitlistPage() {
             Early Access — Limited Spots
           </Badge>
 
-          <h1 className="mx-auto max-w-2xl text-4xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl lg:text-6xl">
+          <h1 className="mx-auto max-w-2xl text-3xl font-extrabold tracking-tight text-text-primary font-display sm:text-5xl lg:text-6xl">
             The Fair Content Layer{" "}
             <span className="bg-gradient-to-r from-primary-400 to-accent-500 bg-clip-text text-transparent">
               for Web3
@@ -159,7 +160,7 @@ export default function WaitlistPage() {
 
         {/* Feature Cards */}
         <motion.div
-          className="mt-20 grid gap-4 sm:grid-cols-3"
+          className="mt-20 grid gap-4 sm:grid-cols-3 [&>div]:h-full"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
@@ -186,7 +187,7 @@ export default function WaitlistPage() {
           ].map((feature) => (
             <div
               key={feature.title}
-              className="group rounded-2xl border border-border-subtle bg-bg-secondary/50 p-6 backdrop-blur-sm transition-all hover:border-border-medium hover:bg-bg-secondary"
+              className="group flex h-full flex-col rounded-2xl border border-border-subtle bg-bg-secondary/50 p-8 backdrop-blur-sm transition-all hover:border-border-medium hover:bg-bg-secondary"
             >
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/15">
                 <feature.icon className="h-5 w-5 text-primary-400" />

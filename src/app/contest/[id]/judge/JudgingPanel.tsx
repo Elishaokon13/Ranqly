@@ -99,7 +99,7 @@ export function JudgingPanel({
       <ul className="space-y-4">
         {entries.map((entry) => (
           <li key={entry.id}>
-            <Card padding="md">
+            <Card>
               <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <h3 className="font-display font-semibold text-text-primary">

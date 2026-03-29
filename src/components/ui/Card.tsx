@@ -9,7 +9,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export function Card({
   className,
   hoverable = false,
-  padding = "md",
+  padding = "lg",
   children,
   ...props
 }: CardProps) {
@@ -18,6 +18,7 @@ export function Card({
       className={cn(
         "rounded-2xl border border-border-subtle bg-bg-secondary",
         "transition-all duration-200",
+        "flex min-h-0 flex-col",
         hoverable && [
           "cursor-pointer",
           "hover:-translate-y-1 hover:border-primary-500 hover:shadow-glow-primary",

@@ -11,10 +11,8 @@ import {
 import { ContestCard } from "@/components/contest";
 import { Button, EmptyState, Select, SelectItem } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import {
-  MOCK_CONTESTS,
-  CATEGORY_LABELS,
-} from "@/lib/mock-data";
+import type { Contest } from "@/lib/mock-data";
+import { CATEGORY_LABELS, MOCK_CONTESTS } from "@/lib/mock-data";
 
 const statusFilters: { value: string; label: string }[] = [
   { value: "all", label: "All Statuses" },
@@ -42,14 +40,17 @@ const prizeFilters: { value: string; label: string; min: number }[] = [
 ];
 
 export interface ExploreClientProps {
+  initialContests?: Contest[];
   initialSearch?: string;
   initialCategory?: string;
 }
 
 export function ExploreClient({
+  initialContests = [],
   initialSearch = "",
   initialCategory = "all",
 }: ExploreClientProps) {
+  const contests = initialContests?.length ? initialContests : MOCK_CONTESTS;
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState(
@@ -62,7 +63,7 @@ export function ExploreClient({
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const filteredContests = useMemo(() => {
-    let results = [...MOCK_CONTESTS];
+    let results = [...contests];
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -134,7 +135,7 @@ export function ExploreClient({
       : "Discover contests, submit your best work, and earn rewards.";
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-site px-4 py-8 sm:px-6 lg:px-8">
       <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: 20 }}
@@ -210,7 +211,7 @@ export function ExploreClient({
             "w-56 shrink-0 space-y-6",
             "hidden lg:block",
             filtersOpen &&
-              "block! fixed inset-0 z-40 bg-bg-primary p-6 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:p-0"
+              "!block fixed inset-0 z-40 overflow-y-auto bg-bg-primary p-6 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:p-0"
           )}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -324,6 +325,7 @@ export function ExploreClient({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05, duration: 0.3 }}
+                  className="h-full"
                 >
                   <ContestCard contest={contest} />
                 </motion.div>

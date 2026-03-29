@@ -1,0 +1,215 @@
+// Ranqly Backend — Prisma schema
+// Aligns with frontend: Contest, Submission, Vote, Judge, Dispute, User
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ——— Enums (match frontend and backend docs) ———
+
+enum ContestPhase {
+  submission
+  scoring
+  disputes
+  voting
+  judging
+  finalization
+  completed
+}
+
+enum ContestCategory {
+  content
+  design
+  dev
+  research
+  other
+}
+
+enum SubmissionStatus {
+  pending
+  scored
+  won
+  withdrawn
+}
+
+enum UserPath {
+  creator
+  judge
+  organizer
+}
+
+enum DisputeType {
+  plagiarism
+  rule_violation
+  other
+}
+
+enum DisputeStatus {
+  open
+  under_review
+  resolved
+}
+
+enum VoteDirection {
+  up
+  down
+}
+
+enum JudgeInviteStatus {
+  pending
+  accepted
+}
+
+// ——— User & Auth ———
+
+model User {
+  id             String    @id @default(cuid())
+  walletAddress String?   @unique
+  email         String?   @unique
+  path          UserPath? // creator | judge | organizer
+  name          String?
+  avatarUrl     String?
+  organizerVerified Boolean @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  contestsOrganized Contest[]
+  submissions      Submission[]
+  votes            Vote[]
+  judgeAssignments JudgeAssignment[]
+  judgeScores      JudgeScore[]
+  disputesFiled    Dispute[]
+}
+
+// ——— Contest ———
+
+model Contest {
+  id              String          @id @default(cuid())
+  slug            String          @unique // e.g. "best-defi-tutorial"
+  title           String
+  description     String
+  organizerId     String
+  organizer       User            @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  category        ContestCategory
+  phase           ContestPhase    @default(submission)
+  prizePool       String          // display e.g. "2M USDC"
+  prizeAmount     Decimal         @db.Decimal(36, 18)
+  currency        String          @default("USDC")
+  winnersCount    Int
+  maxSubmissions  Int?
+  startDate       DateTime
+  endDate         DateTime
+  bannerColor     String?
+  bannerImage     String?
+  hot             Boolean         @default(false)
+  preTge         Boolean         @default(false)
+  algorithmWeight Float?          // 0–1 for scoring mix
+  rules           String?         // contest rules text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  submissions       Submission[]
+  judgeAssignments  JudgeAssignment[]
+  disputes          Dispute[]
+}
+
+// ——— Submission ———
+
+model Submission {
+  id          String           @id @default(cuid())
+  contestId   String
+  contest     Contest          @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String
+  workUrl     String
+  description String
+  status      SubmissionStatus @default(pending)
+  rank        Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  votes       Vote[]
+  judgeScores JudgeScore[]
+  disputes    Dispute[]
+
+  @@index([contestId])
+  @@index([authorId])
+}
+
+// ——— Voting (community votes with justification + reason code) ———
+
+model Vote {
+  id           String        @id @default(cuid())
+  submissionId String
+  submission   Submission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  voterId      String
+  voter        User          @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  direction    VoteDirection // up | down
+  justification String?
+  reasonCode   String?       // U1–U4, D1–D4
+  createdAt    DateTime      @default(now())
+
+  @@unique([submissionId, voterId]) // one vote per user per submission
+  @@index([submissionId])
+  @@index([voterId])
+}
+
+// ——— Judge assignments & scores ———
+
+model JudgeAssignment {
+  id        String            @id @default(cuid())
+  contestId String
+  contest   Contest           @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String?           // when invited by email before signup
+  status    JudgeInviteStatus @default(pending)
+  invitedAt DateTime         @default(now())
+
+  @@unique([contestId, userId]) // one assignment per user per contest (userId set when accepted)
+  @@index([contestId])
+  @@index([userId])
+  @@index([email])
+}
+
+model JudgeScore {
+  id           String   @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  judgeId      String
+  judge        User     @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  score        Int      // 0–100
+  submittedAt  DateTime @default(now())
+
+  @@unique([submissionId, judgeId])
+  @@index([submissionId])
+  @@index([judgeId])
+}
+
+// ——— Disputes ———
+
+model Dispute {
+  id          String        @id @default(cuid())
+  submissionId String
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  contestId   String
+  contest     Contest       @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  filedById   String
+  filedBy     User          @relation(fields: [filedById], references: [id], onDelete: Cascade)
+  type        DisputeType
+  status      DisputeStatus @default(open)
+  summary     String
+  resolvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([contestId])
+  @@index([submissionId])
+  @@index([status])
+}

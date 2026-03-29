@@ -1,55 +1,78 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useMotionValue, animate } from "framer-motion";
-import { ArrowRight, Trophy, BarChart3, Shield, Sparkles, Clock } from "lucide-react";
-import { Button, Badge, AvatarStack } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Button, Badge, AvatarStack, HeroBackground, CountUp, TiltCard } from "@/components/ui";
 import { MOCK_CONTESTS, type Contest } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 const stats = [
-  { label: "Distributed", value: "$47.2M" },
-  { label: "Creators", value: "52,341" },
-  { label: "Partners", value: "150+" },
+  { label: "Distributed", value: { prefix: "$", end: 47.2, suffix: "M", decimals: 1 } },
+  { label: "Creators", value: { end: 52341 } },
+  { label: "Partners", value: { end: 150, suffix: "+" } },
 ];
 
-const CARD_WIDTH = 360;
-const CARD_GAP = 24;
-const STEP = CARD_WIDTH + CARD_GAP;
-const SCROLL_DURATION_S = 40;
+const CAROUSEL_GAP_PX = 16;
+const SCROLL_DURATION_S = 45;
 
 function HeroContestCarousel({ contests }: { contests: Contest[] }) {
   const n = contests.length;
   const loopItems = [...contests, ...contests];
-  const oneSetWidth = n * STEP - CARD_GAP;
   const x = useMotionValue(0);
+  const firstCardRef = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState<number | null>(null);
 
+  // Measure first card width and keep in sync on resize (responsive breakpoints / zoom)
   useEffect(() => {
+    const el = firstCardRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w > 0) setCardWidth(w);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Animation: distance = one full set of cards; restart when card width or n changes
+  useEffect(() => {
+    if (cardWidth == null || n === 0) return;
+    const step = cardWidth + CAROUSEL_GAP_PX;
+    const oneSetWidth = n * step - CAROUSEL_GAP_PX;
+    x.set(0);
     const controls = animate(x, [0, -oneSetWidth], {
       duration: SCROLL_DURATION_S,
       repeat: Infinity,
       ease: "linear",
     });
     return () => controls.stop();
-  }, [x, oneSetWidth]);
+  }, [x, n, cardWidth]);
 
   return (
-    <section className="relative overflow-hidden bg-bg-primary/50 py-6 sm:py-12 lg:py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden py-2 sm:py-4">
-          <div className="overflow-hidden py-4 px-2 sm:py-6 sm:px-3">
+    <section className="relative overflow-hidden bg-bg-primary/50 py-6 sm:py-10 lg:py-16">
+      <div className="mx-auto max-w-site px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden">
+          <div className="overflow-hidden py-2 sm:py-4">
             <motion.div
-              className="flex w-max gap-6"
+              className="flex w-max gap-4"
               style={{ x }}
             >
               {loopItems.map((contest, i) => (
                 <div
                   key={`${contest.id}-${i}`}
-                  className="shrink-0 transition-transform duration-300 hover:scale-105"
-                  style={{ width: CARD_WIDTH }}
+                  ref={i === 0 ? firstCardRef : undefined}
+                  className={cn(
+                    "shrink-0 transition-transform duration-300",
+                    "w-[220px] min-[380px]:w-[260px] sm:w-[300px] md:w-[320px] lg:w-[360px] xl:w-[380px]",
+                    "hover:scale-[1.03] sm:hover:scale-[1.04] lg:hover:scale-105"
+                  )}
                 >
+                  <TiltCard maxDeg={6} className="h-full">
                   <Link
                     href={`/contest/${contest.id}`}
                     className={cn(
@@ -58,45 +81,46 @@ function HeroContestCarousel({ contests }: { contests: Contest[] }) {
                       "hover:border-primary-500/50 hover:shadow-glow-primary"
                     )}
                   >
-                      <div
-                        className={cn(
-                          "relative aspect-3/2 w-full overflow-hidden bg-linear-to-br",
-                          contest.bannerColor
-                        )}
-                      >
-                        {contest.bannerImage && (
-                          <Image
-                            src={contest.bannerImage}
-                            alt=""
-                            fill
-                            className="object-cover object-center"
-                            sizes="360px"
-                          />
-                        )}
-                        <div className={cn("absolute inset-0", contest.bannerImage ? "bg-black/40" : "bg-black/10")} aria-hidden />
-                      </div>
-                      <div className="flex flex-col p-4">
-                        <span className="text-xs font-medium text-text-tertiary">
-                          {contest.organizer.name}
+                    <div
+                      className={cn(
+                        "relative aspect-3/2 w-full overflow-hidden bg-linear-to-br",
+                        contest.bannerColor
+                      )}
+                    >
+                      {contest.bannerImage && (
+                        <Image
+                          src={contest.bannerImage}
+                          alt=""
+                          fill
+                          className="object-cover object-center"
+                          sizes="(max-width: 380px) 220px, (max-width: 640px) 260px, (max-width: 768px) 300px, (max-width: 1024px) 320px, 360px"
+                        />
+                      )}
+                      <div className={cn("absolute inset-0", contest.bannerImage ? "bg-black/40" : "bg-black/10")} aria-hidden />
+                    </div>
+                    <div className="flex flex-col p-3 sm:p-4">
+                      <span className="text-xs font-medium text-text-tertiary">
+                        {contest.organizer.name}
+                      </span>
+                      <h3 className="mt-0.5 line-clamp-1 text-sm font-semibold text-text-primary font-display group-hover:text-primary-400 transition-colors sm:text-base">
+                        {contest.title}
+                      </h3>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-text-secondary sm:mt-3 sm:gap-3">
+                        <span className="inline-flex items-center gap-1 font-semibold text-text-primary">
+                          <Icon name="trophy" size="xs" className="text-warning" />
+                          {contest.prizePool}
                         </span>
-                        <h3 className="mt-0.5 line-clamp-1 text-base font-semibold text-text-primary font-display group-hover:text-primary-400 transition-colors">
-                          {contest.title}
-                        </h3>
-                        <div className="mt-3 flex items-center gap-3 text-xs text-text-secondary">
-                          <span className="inline-flex items-center gap-1 font-semibold text-text-primary">
-                            <Trophy className="h-3 w-3 text-warning" />
-                            {contest.prizePool}
+                        {contest.daysRemaining > 0 && (
+                          <span className="inline-flex items-center gap-1">
+                            <Icon name="clock" size="xs" className="text-current" />
+                            {contest.daysRemaining}d left
                           </span>
-                          {contest.daysRemaining > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {contest.daysRemaining}d left
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    </Link>
-                  </div>
+                    </div>
+                  </Link>
+                  </TiltCard>
+                </div>
               ))}
             </motion.div>
           </div>
@@ -108,7 +132,7 @@ function HeroContestCarousel({ contests }: { contests: Contest[] }) {
 
 export default function Home() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative min-h-0 overflow-x-hidden">
       {/* Background effects — unified gradient glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-1/3 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-primary-500/30 blur-[150px]" />
@@ -116,94 +140,97 @@ export default function Home() {
         <div className="absolute top-1/3 -right-1/4 h-[500px] w-[500px] rounded-full bg-primary-700/18 blur-[100px]" />
       </div>
 
-      {/* First viewport: hero + contest carousel only (100dvh), rest on scroll */}
-      <div className="flex h-dvh min-h-dvh max-h-dvh flex-col overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative flex min-h-0 flex-1 flex-col justify-center overflow-hidden px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8 lg:px-8 lg:pt-8 lg:pb-10">
-        {/* Gradient arc at bottom of hero — fits container to avoid cut edges */}
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-56 w-full rounded-[50%] opacity-60 blur-[3px]"
-          style={{
-            background: "radial-gradient(ellipse 90% 60% at 50% 100%, rgba(104, 116, 232, 0.3) 0%, rgba(100, 245, 141, 0.1) 40%, transparent 65%)",
-          }}
-        />
-        <motion.div
-          className="mx-auto flex max-w-5xl flex-col items-center gap-5 text-center sm:gap-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Badge variant="primary" size="lg">
-            <Sparkles className="h-3.5 w-3.5" />
-            Now in Beta
-          </Badge>
-
-          <h1 className="whitespace-nowrap text-4xl font-extrabold tracking-tight text-text-primary font-display sm:text-6xl lg:text-7xl">
-            The{" "}
-            <span className="bg-linear-to-r from-primary-400 via-primary-300 to-accent-500 bg-clip-text text-transparent">
-              Fair Content
-            </span>{" "}
-            Layer
-          </h1>
-
-          <p className="max-w-4xl text-base leading-relaxed text-text-secondary sm:text-xl">
-            Submit your best content, get scored by our transparent algorithm, earn rewards based on quality. Ranqly ensures every creator gets a fair shot.
-          </p>
-
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Button size="lg" asChild>
-              <Link href="/pricing">
-                Launch Contest
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button variant="secondary" size="lg" asChild>
-              <Link href="/explore">Explore Contests</Link>
-            </Button>
-          </div>
-
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
-            <AvatarStack
-              avatars={[
-                { alt: "Alice" },
-                { alt: "Bob" },
-                { alt: "Carol" },
-                { alt: "Dave" },
-                { alt: "Eve" },
-              ]}
-              max={5}
-              size="sm"
+      {/* Hero + carousel: natural height on mobile, viewport-height on sm+ */}
+      <div className="relative flex min-h-0 flex-col md:min-h-[calc(100dvh-var(--navbar-height,72px))]">
+        <HeroBackground />
+        {/* Hero Section — consistent container and spacing at all breakpoints */}
+        <section className="relative w-full flex-shrink-0 overflow-hidden">
+          <div className="relative mx-auto w-full max-w-content px-4 py-8 min-[480px]:py-10 sm:px-6 sm:py-12 md:py-16 lg:px-8 lg:py-20">
+            {/* Gradient arc — decorative only */}
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-40 w-full rounded-[50%] opacity-60 blur-[3px] sm:h-56"
+              style={{
+                background: "radial-gradient(ellipse 90% 60% at 50% 100%, rgba(104, 116, 232, 0.3) 0%, rgba(100, 245, 141, 0.1) 40%, transparent 65%)",
+              }}
             />
-            <p className="text-sm text-text-secondary">
-              Trusted by{" "}
-              <span className="font-semibold text-text-primary">52,000+</span>{" "}
-              creators worldwide
-            </p>
-          </div>
-        </motion.div>
+            <motion.div
+              className="relative mx-auto flex max-w-3xl flex-col items-center gap-5 text-center min-[480px]:gap-6 sm:max-w-4xl sm:gap-7 md:gap-8"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Badge variant="primary" size="lg">
+                <Icon name="sparkles" size="sm" className="text-current" />
+                Now in Beta
+              </Badge>
 
-        {/* Animated Stats Ticker */}
-        <motion.div
-          className="mx-auto mt-5 flex max-w-lg justify-center divide-x divide-border-subtle sm:mt-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex-1 px-6 text-center">
-              <p className="font-numeric text-2xl font-bold text-text-primary sm:text-3xl">
-                {stat.value}
+              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-text-primary font-display min-[480px]:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
+                The{" "}
+                <span className="bg-linear-to-r from-primary-400 via-primary-300 to-accent-500 bg-clip-text text-transparent">
+                  Fair Content
+                </span>{" "}
+                Layer
+              </h1>
+
+              <p className="max-w-2xl text-sm leading-relaxed text-text-secondary min-[480px]:text-base sm:max-w-3xl sm:text-lg md:text-xl">
+                Submit your best content, get scored by our transparent algorithm, earn rewards based on quality. Ranqly ensures every creator gets a fair shot.
               </p>
-              <p className="mt-1 text-xs text-text-tertiary">{stat.label}</p>
-            </div>
-          ))}
-        </motion.div>
-      </section>
 
-      {/* Hero contest cards — floating + sliding carousel */}
-      <div className="shrink-0">
-        <HeroContestCarousel contests={MOCK_CONTESTS.slice(0, 5)} />
-      </div>
+              <div className="flex w-full max-w-xs flex-col gap-3 min-[480px]:max-w-none min-[480px]:flex-row min-[480px]:flex-wrap min-[480px]:justify-center min-[480px]:gap-4">
+                <Button size="lg" className="w-full min-[480px]:w-auto" asChild>
+                  <Link href="/pricing">
+                    Launch Contest
+                    <Icon name="arrow-right" size="sm" className="text-current" />
+                  </Link>
+                </Button>
+                <Button variant="secondary" size="lg" className="w-full min-[480px]:w-auto" asChild>
+                  <Link href="/explore">Explore Contests</Link>
+                </Button>
+              </div>
+
+              <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-4">
+                <AvatarStack
+                  avatars={[
+                    { alt: "Alice" },
+                    { alt: "Bob" },
+                    { alt: "Carol" },
+                    { alt: "Dave" },
+                    { alt: "Eve" },
+                  ]}
+                  max={5}
+                  size="sm"
+                />
+                <p className="text-sm text-text-secondary">
+                  Trusted by{" "}
+                  <span className="font-semibold text-text-primary">52,000+</span>{" "}
+                  creators worldwide
+                </p>
+              </div>
+
+              {/* Stats — scroll-triggered count-up */}
+              <div className="mt-2 flex w-full max-w-sm justify-center divide-x divide-border-subtle sm:max-w-lg">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="flex flex-1 flex-col items-center px-3 text-center sm:px-6">
+                    <p className="font-numeric text-base font-bold text-text-primary sm:text-xl md:text-2xl">
+                      <CountUp
+                        end={stat.value.end}
+                        prefix={stat.value.prefix ?? ""}
+                        suffix={stat.value.suffix ?? ""}
+                        decimals={stat.value.decimals ?? 0}
+                      />
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-text-tertiary sm:text-xs">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Hero contest carousel */}
+        <div className="relative flex-shrink-0">
+          <HeroContestCarousel contests={MOCK_CONTESTS.slice(0, 5)} />
+        </div>
       </div>
 
       {/* How It Works */}
@@ -214,7 +241,7 @@ export default function Home() {
             background: "radial-gradient(ellipse 80% 50% at 50% 100%, rgba(104, 116, 232, 0.2) 0%, rgba(100, 245, 141, 0.08) 50%, transparent 70%)",
           }}
         />
-        <div className="relative mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
           <motion.div
             className="text-center"
             initial={{ opacity: 0 }}
@@ -234,42 +261,42 @@ export default function Home() {
           </motion.div>
 
           <div className="mt-14 grid gap-8 sm:grid-cols-3">
-            {[
+            {([
               {
                 step: "01",
-                icon: Trophy,
+                icon: "trophy" as const,
                 title: "Submit",
                 description:
                   "Enter your best content — articles, videos, designs, code. Sign with your wallet to lock it on-chain.",
               },
               {
                 step: "02",
-                icon: BarChart3,
+                icon: "bar-chart" as const,
                 title: "Get Scored",
                 description:
                   "Our algorithm scores depth, reach, and relevance. Community votes and expert judges add their evaluation.",
               },
               {
                 step: "03",
-                icon: Shield,
+                icon: "shield" as const,
                 title: "Earn",
                 description:
                   "Top creators earn from the prize pool. Rankings, scores, and audit packs are all publicly verifiable.",
               },
-            ].map((item, i) => (
+            ] as const).map((item, i) => (
               <motion.div
                 key={item.step}
-                className="relative rounded-2xl border border-border-subtle bg-bg-secondary/80 p-6 shadow-[0_0_0_1px_rgba(104,116,232,0.08),0_0_24px_-4px_rgba(104,116,232,0.15)] backdrop-blur-sm"
+                className="relative flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 p-8 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_0_24px_-4px_rgba(104,116,232,0.2)] backdrop-blur-md"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15 }}
               >
-                <span className="absolute -top-6 left-6 rounded-md bg-primary-500 px-3 py-0.5 h-10 flex items-center justify-center text-center text-xs font-bold text-white shadow-[0_0_12px_rgba(104,116,232,0.5)]">
+                <span className="absolute -top-3 left-6 rounded-full bg-primary-500 px-3 py-0.5 text-xs font-bold text-white shadow-[0_0_12px_rgba(104,116,232,0.5)]">
                   {item.step}
                 </span>
                 <div className="mt-2 mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/20 shadow-[0_0_20px_-4px_rgba(104,116,232,0.35)]">
-                  <item.icon className="h-5 w-5 text-primary-400" />
+                  <Icon name={item.icon} size="lg" className="text-primary-400" />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-text-primary font-display">
                   {item.title}
@@ -291,7 +318,7 @@ export default function Home() {
             background: "radial-gradient(ellipse 70% 45% at 50% 100%, rgba(100, 245, 141, 0.15) 0%, rgba(104, 116, 232, 0.08) 45%, transparent 70%)",
           }}
         />
-        <div className="relative mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-content px-4 py-20 sm:px-6 lg:px-8">
           <motion.div
             className="text-center"
             initial={{ opacity: 0 }}
@@ -299,7 +326,7 @@ export default function Home() {
             viewport={{ once: true }}
           >
             <Badge variant="success" size="md" className="mb-4">
-              <Shield className="h-3 w-3" />
+              <Icon name="shield" size="xs" className="text-current" />
               Fairness Guarantee
             </Badge>
             <h2 className="text-3xl font-bold text-text-primary font-display sm:text-4xl">
@@ -330,7 +357,7 @@ export default function Home() {
             ].map((pillar, i) => (
               <motion.div
                 key={pillar.title}
-                className="rounded-2xl border border-border-subtle bg-bg-secondary/90 p-6 text-center shadow-[0_0_0_1px_rgba(104,116,232,0.06),0_0_20px_-6px_rgba(104,116,232,0.12)] backdrop-blur-sm"
+                className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_0_20px_-6px_rgba(104,116,232,0.18)] backdrop-blur-md"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -351,7 +378,7 @@ export default function Home() {
 
           <div className="mt-8 flex justify-center">
             <Badge variant="success" size="lg">
-              <Shield className="h-3.5 w-3.5" />
+              <Icon name="shield" size="sm" className="text-current" />
               100% Auditable — Every score verifiable on-chain
             </Badge>
           </div>
@@ -381,9 +408,9 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Button size="lg" asChild>
-                <Link href="/explore">
+                <Link href="/pricing">
                   Launch a Contest
-                  <ArrowRight className="h-4 w-4" />
+                  <Icon name="arrow-right" size="sm" className="text-current" />
                 </Link>
               </Button>
               <Button variant="outline" size="lg" asChild>

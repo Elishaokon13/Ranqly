@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, LogIn, LogOut, CircleUser } from "lucide-react";
+import { useAppKit, useAppKitState } from "@reown/appkit/react";
+import { useAccount, useDisconnect } from "wagmi";
+import { Icon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { SignInModal } from "@/components/wallet";
 import { RanqlyLogo } from "./RanqlyLogo";
+import { isApiConfigured, publicAssetUrl } from "@/lib/api";
 
 const navLinks = [
   { href: "/explore", label: "Explore" },
@@ -31,18 +34,37 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const { user, signIn, signOut } = useAuth();
+  const { open: openAppKit } = useAppKit();
+  const { disconnect } = useDisconnect();
+  const { isConnected } = useAccount();
+  const { connectingWallet, open: walletModalVisible } = useAppKitState();
+  const useWalletAuth = isApiConfigured();
+  const walletPendingSignIn = useWalletAuth && isConnected && !user;
+  const connectBusy = Boolean(connectingWallet) || walletModalVisible;
+  const dashboardAvatarSrc = user?.avatarUrl ? publicAssetUrl(user.avatarUrl) : "";
+
+
+  const openWalletFlow = () => {
+    void openAppKit();
+  };
+
+  const connectLabel = !useWalletAuth
+    ? "Sign in"
+    : walletPendingSignIn
+      ? "Finish sign-in"
+      : connectBusy
+        ? "Opening wallet…"
+        : "Connect wallet";
 
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border-subtle bg-bg-primary/80 backdrop-blur-xl">
         <nav
-          className="mx-auto flex h-(--navbar-height) max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
+          className="mx-auto flex h-(--navbar-height) max-w-site items-center justify-between px-4 sm:px-6 lg:px-8"
           aria-label="Main navigation"
         >
-          {/* Logo */}
           <RanqlyLogo href="/" size="md" className="text-text-primary" />
 
-          {/* Desktop Nav Links */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => (
               <Link
@@ -59,68 +81,107 @@ export function Navbar() {
             ))}
           </div>
 
-          {/* Desktop Right Side */}
           <div className="hidden items-center gap-3 md:flex">
             {user ? (
               <>
                 <Link
                   href="/dashboard"
                   className={cn(
-                    "flex h-(--button-height-md) w-(--button-height-md) items-center justify-center rounded-full",
-                    "text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
-                    "focus-visible:outline-2 focus-visible:outline-primary-500"
+                    "flex h-(--button-height-md) w-(--button-height-md) shrink-0 items-center justify-center overflow-hidden rounded-full",
+                    "border border-transparent text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
+                    "focus-visible:outline-2 focus-visible:outline-primary-500",
+                    dashboardAvatarSrc && "border-border-subtle"
                   )}
                   aria-label="Dashboard / Profile"
                 >
-                  <CircleUser className="h-6 w-6" />
+                  {dashboardAvatarSrc ? (
+                    <img
+                      src={dashboardAvatarSrc}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Icon name="user" size="lg" className="text-current" />
+                  )}
                 </Link>
                 <button
-                  onClick={() => signOut()}
+                  type="button"
+                  onClick={() => {
+                    if (user?.method === "wallet") disconnect?.();
+                    signOut();
+                  }}
                   className={cn(
                     "inline-flex h-(--button-height-md) items-center gap-2 rounded-xl",
                     "border border-border-subtle bg-transparent px-5 text-sm font-medium text-text-secondary",
                     "hover:bg-bg-tertiary hover:text-text-primary transition-colors"
                   )}
                 >
-                  <LogOut className="h-4 w-4" />
+                  <Icon name="log-out" size="sm" className="text-current" />
                   Sign out
                 </button>
               </>
             ) : (
               <button
-                onClick={() => setSignInModalOpen(true)}
+                type="button"
+                disabled={connectBusy}
+                title={
+                  walletPendingSignIn
+                    ? "Your wallet is connected — sign the message in the modal to complete sign-in."
+                    : undefined
+                }
+                onClick={() => (useWalletAuth ? openWalletFlow() : setSignInModalOpen(true))}
                 className={cn(
                   "inline-flex h-(--button-height-md) items-center gap-2 rounded-xl",
                   "bg-primary-500 px-5 text-sm font-semibold text-white",
                   "transition-all hover:bg-primary-600 hover:shadow-glow-primary",
-                  "active:scale-[0.98]"
+                  "active:scale-[0.98]",
+                  connectBusy && "cursor-wait opacity-80"
                 )}
               >
-                <LogIn className="h-4 w-4" />
-                Sign in
+                <Icon name="log-in" size="sm" className="text-current" />
+                {connectLabel}
               </button>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            {user ? (
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-subtle",
+                  "text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary",
+                  "focus-visible:outline-2 focus-visible:outline-primary-500"
+                )}
+                aria-label="Dashboard / Profile"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {dashboardAvatarSrc ? (
+                  <img src={dashboardAvatarSrc} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Icon name="user" size="lg" className="text-current" />
+                )}
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <Icon name="close" size="sm" className="text-current" />
+              ) : (
+                <Icon name="menu" size="sm" className="text-current" />
+              )}
+            </button>
+          </div>
         </nav>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="border-t border-border-subtle bg-bg-secondary md:hidden">
-            <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+            <div className="mx-auto max-w-site px-4 py-4 sm:px-6">
               <div className="flex flex-col gap-1">
                 {(user ? signedInMobileLinks : mobileMenuLinks).map((link) => (
                   <Link
@@ -140,8 +201,10 @@ export function Navbar() {
               <div className="mt-4 border-t border-border-subtle pt-4">
                 {user ? (
                   <button
+                    type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
+                      if (user?.method === "wallet") disconnect?.();
                       signOut();
                     }}
                     className={cn(
@@ -149,23 +212,26 @@ export function Navbar() {
                       "border border-border-subtle bg-transparent px-5 text-sm font-medium text-text-secondary"
                     )}
                   >
-                    <LogOut className="h-4 w-4" />
+                    <Icon name="log-out" size="sm" className="text-current" />
                     Sign out
                   </button>
                 ) : (
                   <button
+                    type="button"
+                    disabled={connectBusy}
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setSignInModalOpen(true);
+                      useWalletAuth ? openWalletFlow() : setSignInModalOpen(true);
                     }}
                     className={cn(
                       "inline-flex h-(--button-height-md) w-full items-center justify-center gap-2 rounded-xl",
                       "bg-primary-500 px-5 text-sm font-semibold text-white",
-                      "transition-all hover:bg-primary-600"
+                      "transition-all hover:bg-primary-600",
+                      connectBusy && "cursor-wait opacity-80"
                     )}
                   >
-                    <LogIn className="h-4 w-4" />
-                    Sign in
+                    <Icon name="log-in" size="sm" className="text-current" />
+                    {connectLabel}
                   </button>
                 )}
               </div>
@@ -174,13 +240,15 @@ export function Navbar() {
         )}
       </header>
 
-      <SignInModal
-        open={signInModalOpen}
-        onOpenChange={setSignInModalOpen}
-        onSuccess={(method, id, email) => {
-          signIn(method, id, email);
-        }}
-      />
+      {!useWalletAuth && (
+        <SignInModal
+          open={signInModalOpen}
+          onOpenChange={setSignInModalOpen}
+          onSuccess={(method, id, email) => {
+            signIn(method, id, email);
+          }}
+        />
+      )}
     </>
   );
 }

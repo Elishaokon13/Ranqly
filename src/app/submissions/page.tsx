@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -19,6 +19,7 @@ import {
   type MySubmission,
   type SubmissionStatus,
 } from "@/lib/mock-data";
+import { isApiConfigured, fetchMySubmissions } from "@/lib/api";
 
 const STATUS_LABELS: Record<SubmissionStatus, string> = {
   pending: "Pending",
@@ -38,8 +39,45 @@ function getContest(contestId: string) {
   return MOCK_CONTESTS.find((c) => c.id === contestId);
 }
 
+function formatSubmittedAt(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+function mapApiSubmissionToMySubmission(item: import("@/lib/api").MySubmissionFromApi): MySubmission {
+  const status = (["pending", "scored", "won", "withdrawn"].includes(item.status)
+    ? item.status
+    : "pending") as SubmissionStatus;
+  return {
+    id: item.id,
+    contestId: item.contest?.slug ?? item.contestId,
+    title: item.title,
+    workUrl: item.workUrl,
+    description: item.description ?? "",
+    status,
+    rank: item.rank ?? undefined,
+    submittedAt: formatSubmittedAt(item.createdAt),
+  };
+}
+
 export default function SubmissionsPage() {
   const [submissions, setSubmissions] = useState<MySubmission[]>(MOCK_MY_SUBMISSIONS);
+
+  useEffect(() => {
+    if (!isApiConfigured()) return;
+    let cancelled = false;
+    fetchMySubmissions().then((items) => {
+      if (cancelled || !items) return;
+      setSubmissions(items.map(mapApiSubmissionToMySubmission));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleWithdraw = (sub: MySubmission) => {
     setSubmissions((prev) =>
@@ -53,7 +91,7 @@ export default function SubmissionsPage() {
 
   return (
     <RequireAuth message="Sign in to view and manage your submissions.">
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
       <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: 20 }}
@@ -81,7 +119,7 @@ export default function SubmissionsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.05 }}
               >
-                <Card padding="md" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-display text-lg font-semibold text-text-primary">

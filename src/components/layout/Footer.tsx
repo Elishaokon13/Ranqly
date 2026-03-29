@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Twitter, Github, MessageCircle, Globe } from "lucide-react";
+import { Icon, type IconName } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { RanqlyLogo } from "./RanqlyLogo";
 
@@ -24,11 +24,11 @@ const footerLinks = {
   ],
 };
 
-const socialLinks = [
-  { href: "https://twitter.com/ranqly", label: "Twitter", icon: Twitter },
-  { href: "https://github.com/ranqly", label: "GitHub", icon: Github },
-  { href: "https://discord.gg/ranqly", label: "Discord", icon: MessageCircle },
-  { href: "https://ranqly.com", label: "Website", icon: Globe },
+const socialLinks: { href: string; label: string; icon: IconName }[] = [
+  { href: "https://twitter.com/ranqly", label: "Twitter", icon: "twitter" },
+  { href: "https://github.com/ranqly", label: "GitHub", icon: "github" },
+  { href: "https://discord.gg/ranqly", label: "Discord", icon: "discord" },
+  { href: "https://ranqly.com", label: "Website", icon: "globe" },
 ];
 
 const legalLinks = [
@@ -40,7 +40,7 @@ const legalLinks = [
 export function Footer() {
   return (
     <footer className="border-t border-border-subtle bg-bg-secondary">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <div className="mx-auto max-w-site px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         {/* Top Section: Logo + Link Columns */}
         <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           {/* Brand Column */}
@@ -66,7 +66,7 @@ export function Footer() {
                   )}
                   aria-label={social.label}
                 >
-                  <social.icon className="h-4 w-4" />
+                  <Icon name={social.icon} size="sm" className="text-current" />
                 </a>
               ))}
             </div>

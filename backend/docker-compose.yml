@@ -1,0 +1,51 @@
+# Ranqly Backend — local dev stack (Postgres, Redis, API optional)
+# Usage: docker compose up -d postgres redis   # then: npm run dev (and npm run prisma:migrate)
+# Or:    docker compose up -d                  # runs api too (after build)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ranqly
+      POSTGRES_PASSWORD: ranqly
+      POSTGRES_DB: ranqly
+    ports:
+      - "5432:5432"
+    volumes:
+      - ranqly_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ranqly"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ranqly_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: postgresql://ranqly:ranqly@postgres:5432/ranqly?schema=public
+      REDIS_URL: redis://redis:6379
+      PORT: 4000
+      NODE_ENV: production
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    # Run migrations then start (optional; or run migrate manually)
+    command: sh -c "npx prisma migrate deploy && node dist/app.js"
+
+volumes:
+  ranqly_pgdata:
+  ranqly_redis:

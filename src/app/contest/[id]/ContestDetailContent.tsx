@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Clock,
   Flame,
@@ -167,15 +168,21 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
   const isEndingSoon = contest.daysRemaining > 0 && contest.daysRemaining <= 1;
 
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const tabParam = searchParams.get("tab");
   const validTabs = ["overview", "leaderboard", "submissions", "rules", "discussion"] as const;
   const defaultTab = tabParam && validTabs.includes(tabParam as (typeof validTabs)[number])
     ? (tabParam as (typeof validTabs)[number])
     : "overview";
 
+  const isGuest = !user;
+  const isSubmissionPhase = contest.phase === "submission";
+  const isVotingPhase = contest.phase === "voting";
+  const showGuestCta = isGuest && (isSubmissionPhase || isVotingPhase);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
+    <div className="mx-auto max-w-site px-4 py-8 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
         {/* ─── Left column ─── */}
         <div className="min-w-0 space-y-6">
           {/* Banner — cover only (image or gradient, no text) */}
@@ -378,7 +385,7 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
           </Tabs>
 
           {/* Phase indicator card */}
-          <Card padding="md">
+          <Card >
             <CardHeader>
               <CardTitle>Contest phase</CardTitle>
             </CardHeader>
@@ -473,7 +480,7 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="space-y-4">
             {/* Prize pool */}
-            <Card padding="md">
+            <Card >
               <CardContent className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/15">
                   <Trophy className="h-6 w-6 text-warning" />
@@ -493,7 +500,7 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
             </Card>
 
             {/* Timeline */}
-            <Card padding="md">
+            <Card >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clock className="h-4 w-4" /> Timeline
@@ -511,7 +518,7 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
             </Card>
 
             {/* Stats */}
-            <Card padding="md">
+            <Card >
               <CardHeader>
                 <CardTitle className="text-base">Stats</CardTitle>
               </CardHeader>
@@ -538,24 +545,43 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
               </CardContent>
             </Card>
 
-            {/* Your status — phase-specific CTA */}
+            {/* Your status — phase-specific CTA (guest sees Sign in to Submit) */}
             {(() => {
               const cta = getPhaseCta(contest);
               const Icon = cta.icon;
+              const guestPrimaryLabel = isSubmissionPhase
+                ? "Sign in to Submit"
+                : "Sign in to Vote";
+              const guestRedirect = isSubmissionPhase
+                ? `/contest/${contest.id}/submit`
+                : `/contest/${contest.id}?tab=submissions`;
+              const guestPrimaryHref = `/signin?redirect=${encodeURIComponent(guestRedirect)}`;
               return (
-                <Card padding="md">
+                <Card >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Icon className="h-4 w-4 text-primary-400" />
-                      {cta.title}
+                      {showGuestCta
+                        ? isSubmissionPhase
+                          ? "Submit your entry"
+                          : "Community voting"
+                        : cta.title}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <p className="text-xs text-text-tertiary">{cta.description}</p>
+                    <p className="text-xs text-text-tertiary">
+                      {showGuestCta
+                        ? isSubmissionPhase
+                          ? "Sign in to submit an entry."
+                          : "Sign in to vote on entries."
+                        : cta.description}
+                    </p>
                     <Button className="w-full" size="lg" asChild>
-                      <Link href={cta.primaryHref}>{cta.primaryLabel}</Link>
+                      <Link href={showGuestCta ? guestPrimaryHref : cta.primaryHref}>
+                        {showGuestCta ? guestPrimaryLabel : cta.primaryLabel}
+                      </Link>
                     </Button>
-                    {cta.secondaryLabel && cta.secondaryHref && (
+                    {!showGuestCta && cta.secondaryLabel && cta.secondaryHref && (
                       <Button variant="secondary" className="w-full" size="sm" asChild>
                         <Link href={cta.secondaryHref}>{cta.secondaryLabel}</Link>
                       </Button>
@@ -566,7 +592,7 @@ export function ContestDetailContent({ contest }: ContestDetailContentProps) {
             })()}
 
             {/* Organizer */}
-            <Card padding="md">
+            <Card >
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated text-sm font-bold text-text-primary">

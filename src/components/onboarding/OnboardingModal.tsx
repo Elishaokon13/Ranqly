@@ -7,6 +7,7 @@ import {
   PenTool,
   Building2,
   Compass,
+  Gavel,
   Twitter,
   Github,
   BookOpen,
@@ -19,12 +20,13 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Button, Badge, Separator } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
-type UserPath = "creator" | "organizer" | "exploring" | null;
+type OnboardingPath = "creator" | "judge" | "organizer" | "exploring" | null;
 
 interface OnboardingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onComplete?: () => void;
+  /** Called when onboarding is completed. Passes the selected path (creator/judge/organizer) or null if "Just exploring". */
+  onComplete?: (path: "creator" | "judge" | "organizer" | null) => void;
 }
 
 const TOTAL_STEPS = 4;
@@ -66,7 +68,7 @@ export function OnboardingModal({
 }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
-  const [selectedPath, setSelectedPath] = useState<UserPath>(null);
+  const [selectedPath, setSelectedPath] = useState<OnboardingPath>(null);
   const [connectedSocials, setConnectedSocials] = useState<string[]>([]);
 
   const goNext = () => {
@@ -80,9 +82,12 @@ export function OnboardingModal({
   };
 
   const handleComplete = () => {
-    onComplete?.();
+    const pathToSave =
+      selectedPath === "creator" || selectedPath === "judge" || selectedPath === "organizer"
+        ? selectedPath
+        : null;
+    onComplete?.(pathToSave);
     onOpenChange(false);
-    // Reset for next time
     setTimeout(() => {
       setStep(0);
       setSelectedPath(null);
@@ -102,8 +107,8 @@ export function OnboardingModal({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in" />
         <Dialog.Content
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 w-full max-w-[500px] -translate-x-1/2 -translate-y-1/2",
-            "rounded-2xl border border-border-subtle bg-bg-secondary shadow-xl",
+            "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[500px] -translate-x-1/2 -translate-y-1/2",
+            "max-h-[90vh] overflow-y-auto rounded-2xl border border-border-subtle bg-bg-secondary shadow-xl",
             "data-[state=open]:animate-scale-in",
             "focus:outline-none",
             "overflow-hidden"
@@ -164,6 +169,12 @@ export function OnboardingModal({
                         icon: PenTool,
                         title: "I'm a Creator",
                         desc: "Earn through contests by submitting great content",
+                      },
+                      {
+                        id: "judge" as const,
+                        icon: Gavel,
+                        title: "I'm a Judge",
+                        desc: "Score entries and help pick the best content",
                       },
                       {
                         id: "organizer" as const,

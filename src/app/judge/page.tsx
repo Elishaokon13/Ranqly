@@ -21,7 +21,7 @@ export default function JudgeDashboardPage() {
 
   return (
     <RequireAuth message="Sign in to access the judge dashboard.">
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
       <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: 20 }}
@@ -51,7 +51,7 @@ export default function JudgeDashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.05 }}
               >
-                <Card padding="md" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated text-sm font-bold text-text-primary">

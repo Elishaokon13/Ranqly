@@ -103,8 +103,8 @@ export function SignInModal({ open, onOpenChange, onSuccess }: SignInModalProps)
       setTimeout(() => {
         setStep("success");
         onSuccess?.("social");
-        setTimeout(() => handleClose(false), 1500);
-      }, 1500);
+        setTimeout(() => handleClose(false), 400);
+      }, 600);
     },
     [onSuccess, handleClose]
   );
@@ -124,24 +124,24 @@ export function SignInModal({ open, onOpenChange, onSuccess }: SignInModalProps)
     setTimeout(() => {
       setStep("success");
       onSuccess?.("email", undefined, trimmed);
-      setTimeout(() => handleClose(false), 1500);
-    }, 2000);
+      setTimeout(() => handleClose(false), 400);
+    }, 800);
   }, [email, onSuccess, handleClose]);
 
   const handleWalletSelect = useCallback(
     async (walletId: string) => {
       setSelectedWallet(walletId);
       setStep("connecting");
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 1000));
       const rand = Math.random();
-      if (rand > 0.9) {
+      if (rand > 0.92) {
         setStep("error");
-      } else if (rand > 0.8) {
+      } else if (rand > 0.85) {
         setStep("rejected");
       } else {
         setStep("success");
         onSuccess?.("wallet", walletId);
-        setTimeout(() => handleClose(false), 1500);
+        setTimeout(() => handleClose(false), 400);
       }
     },
     [onSuccess, handleClose]

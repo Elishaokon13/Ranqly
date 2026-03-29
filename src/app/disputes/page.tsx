@@ -49,7 +49,7 @@ export default function DisputesPage() {
   const hasDisputes = MOCK_DISPUTES.length > 0;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
       <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: 20 }}
@@ -78,7 +78,7 @@ export default function DisputesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card padding="md">
+                <Card>
                   <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

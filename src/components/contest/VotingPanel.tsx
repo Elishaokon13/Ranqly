@@ -13,20 +13,43 @@ import {
   Button,
   Card,
   CardContent,
+  Input,
   Modal,
   ModalHeader,
   ModalTitle,
   ModalDescription,
   ModalBody,
   ModalFooter,
+  Select,
+  SelectItem,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { ContestEntry } from "@/lib/mock-data";
 
 const MAX_UPVOTES = 5;
 const MAX_DOWNVOTES = 2;
+const MIN_JUSTIFICATION_LENGTH = 10;
 
 type VoteValue = "up" | "down" | null;
+
+const UP_REASON_CODES = [
+  { value: "U1", label: "U1 — High quality / meets criteria" },
+  { value: "U2", label: "U2 — Original and creative" },
+  { value: "U3", label: "U3 — Well executed" },
+  { value: "U4", label: "U4 — Other (see justification)" },
+] as const;
+const DOWN_REASON_CODES = [
+  { value: "D1", label: "D1 — Does not meet criteria" },
+  { value: "D2", label: "D2 — Low quality or incomplete" },
+  { value: "D3", label: "D3 — Not original or off-topic" },
+  { value: "D4", label: "D4 — Other (see justification)" },
+] as const;
+
+interface VoteData {
+  value: VoteValue;
+  justification: string;
+  reasonCode: string;
+}
 
 interface VotingPanelProps {
   contestId: string;
@@ -34,43 +57,66 @@ interface VotingPanelProps {
 }
 
 export function VotingPanel({ contestId, entries }: VotingPanelProps) {
-  const [votes, setVotes] = useState<Record<string, VoteValue>>({});
+  const [votes, setVotes] = useState<Record<string, VoteData>>({});
   const [submitted, setSubmitted] = useState(false);
   const [hasPoI, setHasPoI] = useState(false);
   const [poiModalOpen, setPoiModalOpen] = useState(false);
   const [poiMinting, setPoiMinting] = useState(false);
 
-  const upCount = Object.values(votes).filter((v) => v === "up").length;
-  const downCount = Object.values(votes).filter((v) => v === "down").length;
+  const upCount = Object.values(votes).filter((v) => v.value === "up").length;
+  const downCount = Object.values(votes).filter((v) => v.value === "down").length;
   const upRemaining = MAX_UPVOTES - upCount;
   const downRemaining = MAX_DOWNVOTES - downCount;
+  const votedEntries = entries.filter((e) => votes[e.id]?.value != null);
+  const allJustified = votedEntries.every(
+    (e) =>
+      (votes[e.id]?.justification?.trim().length ?? 0) >= MIN_JUSTIFICATION_LENGTH &&
+      Boolean(votes[e.id]?.reasonCode)
+  );
   const hasVotes = upCount > 0 || downCount > 0;
+  const canSubmit = hasVotes && allJustified;
 
   const setVote = (entryId: string, newValue: VoteValue) => {
     setVotes((prev) => {
-      const current = prev[entryId];
+      const current = prev[entryId]?.value;
       const next = { ...prev };
-      const upCountPrev = Object.values(prev).filter((v) => v === "up").length;
-      const downCountPrev = Object.values(prev).filter((v) => v === "down").length;
+      const upCountPrev = Object.values(prev).filter((v) => v.value === "up").length;
+      const downCountPrev = Object.values(prev).filter((v) => v.value === "down").length;
       const upRemainingPrev = MAX_UPVOTES - upCountPrev;
       const downRemainingPrev = MAX_DOWNVOTES - downCountPrev;
 
       if (newValue === "up") {
         if (current === "up") {
-          next[entryId] = null;
+          delete next[entryId];
           return next;
         }
         if (current !== "down" && upRemainingPrev <= 0) return prev;
-        next[entryId] = "up";
+        next[entryId] = { value: "up", justification: "", reasonCode: "" };
       } else if (newValue === "down") {
         if (current === "down") {
-          next[entryId] = null;
+          delete next[entryId];
           return next;
         }
         if (current !== "up" && downRemainingPrev <= 0) return prev;
-        next[entryId] = "down";
+        next[entryId] = { value: "down", justification: "", reasonCode: "" };
       }
       return next;
+    });
+  };
+
+  const setJustification = (entryId: string, justification: string) => {
+    setVotes((prev) => {
+      const v = prev[entryId];
+      if (!v) return prev;
+      return { ...prev, [entryId]: { ...v, justification } };
+    });
+  };
+
+  const setReasonCode = (entryId: string, reasonCode: string) => {
+    setVotes((prev) => {
+      const v = prev[entryId];
+      if (!v) return prev;
+      return { ...prev, [entryId]: { ...v, reasonCode } };
     });
   };
 
@@ -164,7 +210,7 @@ export function VotingPanel({ contestId, entries }: VotingPanelProps) {
         <Button
           size="sm"
           onClick={handleSubmit}
-          disabled={!hasVotes}
+          disabled={!canSubmit}
         >
           Submit my votes
         </Button>
@@ -173,9 +219,14 @@ export function VotingPanel({ contestId, entries }: VotingPanelProps) {
       <ul className="space-y-3">
         {entries.map((entry) => {
           const vote = votes[entry.id];
+          const voteValue = vote?.value ?? null;
+          const reasonCodes = voteValue === "up" ? UP_REASON_CODES : voteValue === "down" ? DOWN_REASON_CODES : [];
+          const justification = vote?.justification ?? "";
+          const reasonCode = vote?.reasonCode ?? "";
+          const justificationValid = justification.trim().length >= MIN_JUSTIFICATION_LENGTH;
           return (
             <li key={entry.id}>
-              <Card padding="md" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <h3 className="font-display font-semibold text-text-primary">
                     {entry.title}
@@ -187,24 +238,24 @@ export function VotingPanel({ contestId, entries }: VotingPanelProps) {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Button
-                    variant={vote === "up" ? "primary" : "ghost"}
+                    variant={voteValue === "up" ? "primary" : "ghost"}
                     size="sm"
-                    onClick={() => setVote(entry.id, vote === "up" ? null : "up")}
-                    disabled={vote !== "up" && upRemaining <= 0}
+                    onClick={() => setVote(entry.id, voteValue === "up" ? null : "up")}
+                    disabled={voteValue !== "up" && upRemaining <= 0}
                     className={cn(
-                      vote === "up" && "ring-2 ring-primary-400 ring-offset-2 ring-offset-bg-secondary"
+                      voteValue === "up" && "ring-2 ring-primary-400 ring-offset-2 ring-offset-bg-secondary"
                     )}
                   >
                     <ThumbsUp className="h-4 w-4" />
                     Up
                   </Button>
                   <Button
-                    variant={vote === "down" ? "danger" : "ghost"}
+                    variant={voteValue === "down" ? "danger" : "ghost"}
                     size="sm"
-                    onClick={() => setVote(entry.id, vote === "down" ? null : "down")}
-                    disabled={vote !== "down" && downRemaining <= 0}
+                    onClick={() => setVote(entry.id, voteValue === "down" ? null : "down")}
+                    disabled={voteValue !== "down" && downRemaining <= 0}
                     className={cn(
-                      vote === "down" &&
+                      voteValue === "down" &&
                         "ring-2 ring-error ring-offset-2 ring-offset-bg-secondary"
                     )}
                   >
@@ -222,6 +273,33 @@ export function VotingPanel({ contestId, entries }: VotingPanelProps) {
                   </Button>
                 </div>
               </Card>
+              {voteValue != null && (
+                <div className="ml-0 flex flex-col gap-2 rounded-xl border border-border-subtle bg-bg-tertiary/50 p-3 sm:ml-4">
+                  <Input
+                    label="Justification (min 10 characters)"
+                    placeholder="Explain why you chose this vote..."
+                    value={justification}
+                    onChange={(e) => setJustification(entry.id, e.target.value)}
+                    error={
+                      justification.length > 0 && !justificationValid
+                        ? `At least ${MIN_JUSTIFICATION_LENGTH} characters required`
+                        : undefined
+                    }
+                  />
+                  <Select
+                    label="Reason code"
+                    placeholder="Select reason..."
+                    value={reasonCode || undefined}
+                    onValueChange={(v) => setReasonCode(entry.id, v)}
+                  >
+                    {reasonCodes.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+              )}
             </li>
           );
         })}

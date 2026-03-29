@@ -214,6 +214,7 @@ Given the scale, we should build in this order:
 - Phase 2 complete. All 5 public/marketing pages built and visually verified (Waitlist, Landing, About, How It Works, Pricing).
 - Phase 3 complete. All 4 auth/onboarding screens built (Connect Wallet modal, Onboarding flow, Profile Setup, Account Settings).
 - Ready to start Phase 4 (Contest Discovery) upon user approval.
+- **Git/PR workflow help.** Verified local repo is connected to fork `origin` (`Elishaokon13/Ranqly`) and is up to date with remote `main`. Discovered original upstream repo via `gh repo view` (`LaudTheAvatar/Ranqly`). For PRs: create feature branches on the fork, push to `origin`, then open a PR on GitHub with base `LaudTheAvatar/Ranqly:main` and compare `Elishaokon13/Ranqly:your-branch`.
 
 ## Lessons
 - Zod 4: z.literal(true) makes the type only `true`, so defaultValues cannot use false; use z.boolean().refine((v) => v === true, { message: "..." }) for a required checkbox. Custom message in Zod 4 uses `message`, not `errorMap`.
