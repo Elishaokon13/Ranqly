@@ -4,6 +4,7 @@
  * Set NEXT_PUBLIC_USE_MOCK_API=true to force mock data and skip backend calls.
  */
 import type { Contest, ContestCategory, ContestPhase } from "./mock-data";
+import type { UserPreferencesPatch } from "./userPreferences";
 
 const AUTH_TOKEN_KEY = "ranqly_token";
 
@@ -200,6 +201,7 @@ export interface AuthMeUser {
   path: string | null;
   name: string | null;
   avatarUrl: string | null;
+  preferences?: unknown;
   organizerVerified?: boolean;
 }
 
@@ -245,6 +247,7 @@ export async function patchMyProfile(updates: {
   name?: string;
   email?: string;
   avatarUrl?: string;
+  preferences?: UserPreferencesPatch;
 }): Promise<AuthMeUser> {
   if (!isApiConfigured()) throw new Error("API is not configured.");
   const res = await fetch(apiUrl("/api/me"), {
@@ -258,3 +261,37 @@ export async function patchMyProfile(updates: {
   }
   return (await res.json()) as AuthMeUser;
 }
+
+/** GET /api/me/export — triggers JSON download in the browser. */
+export async function downloadMyAccountExport(): Promise<void> {
+  if (!isApiConfigured()) throw new Error("API is not configured.");
+  const res = await fetch(apiUrl("/api/me/export"), { cache: "no-store", headers: getAuthHeaders() });
+  if (!res.ok) {
+    const msg = await readFetchErrorMessage(res, `Export failed (${res.status})`);
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ranqly-account-export.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** POST /api/me/delete-account — irreversible. Caller should sign out after success. */
+export async function deleteMyAccount(): Promise<void> {
+  if (!isApiConfigured()) throw new Error("API is not configured.");
+  const res = await fetch(apiUrl("/api/me/delete-account"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ confirmation: "DELETE_MY_ACCOUNT" }),
+  });
+  if (!res.ok) {
+    const msg = await readFetchErrorMessage(res, `Delete failed (${res.status})`);
+    throw new Error(msg);
+  }
+}
+

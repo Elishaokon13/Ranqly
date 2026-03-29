@@ -215,6 +215,7 @@ router.post("/siwe", async (req, res: Response) => {
       path: user.path,
       name: user.name,
       avatarUrl: user.avatarUrl,
+      preferences: user.preferences,
     },
   });
 });
@@ -229,6 +230,7 @@ router.get("/me", requireAuth, async (req: RequestWithAuth, res: Response) => {
       path: true,
       name: true,
       avatarUrl: true,
+      preferences: true,
       organizerVerified: true,
     },
   });
