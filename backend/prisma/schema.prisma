@@ -2,7 +2,9 @@
 // Aligns with frontend: Contest, Submission, Vote, Judge, Dispute, User
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Render (and most Ubuntu 22.04+ hosts) use OpenSSL 3.x; without this, Prisma may warn and mis-detect libssl.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

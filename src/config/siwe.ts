@@ -64,7 +64,12 @@ export const siweConfig = createSIWEConfig({
       );
     }
     if (!res.ok) {
-      throw new Error(`Nonce request failed (${res.status}). Check database and JWT_SECRET on the server.`);
+      if (res.status === 404) {
+        throw new Error(
+          `Nonce request returned 404 — the Ranqly API is not available at this origin. On Vercel only the Next.js app runs by default; the Express API in /backend is separate. Set NEXT_PUBLIC_API_URL to your deployed API (e.g. Railway/Render) or add Next.js API routes for /api/auth/*.`
+        );
+      }
+      throw new Error(`Nonce request failed (${res.status}). Check API logs, DATABASE_URL, and JWT_SECRET on the server.`);
     }
     const data = (await res.json()) as { nonce?: string };
     const nonce = data.nonce;
