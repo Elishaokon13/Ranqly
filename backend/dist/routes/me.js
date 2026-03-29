@@ -124,7 +124,17 @@ const userMeSelect = {
 router.get("/submissions", auth_1.requireAuth, async (req, res) => {
     const submissions = await prisma_1.prisma.submission.findMany({
         where: { authorId: req.userId },
-        include: { contest: { select: { id: true, slug: true, title: true, phase: true } } },
+        include: {
+            contest: {
+                select: {
+                    id: true,
+                    slug: true,
+                    title: true,
+                    phase: true,
+                    organizer: { select: { name: true } },
+                },
+            },
+        },
         orderBy: { createdAt: "desc" },
     });
     res.json({ items: submissions });
