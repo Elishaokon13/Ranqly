@@ -34,7 +34,15 @@ if (dangerous.length > 0) {
   );
   console.error("  These entries pull in backend/ and break Vercel (no @prisma/client at root):");
   dangerous.forEach((p) => console.error("   -", JSON.stringify(p)));
-  console.error('  Use explicit globs: "src/**/*.ts", "src/**/*.tsx", plus next.config.ts / server.ts.');
+  console.error('  Use explicit globs: "src/**/*.ts", "src/**/*.tsx", plus next.config.ts.');
+  process.exit(1);
+}
+
+if (include.includes("server.ts")) {
+  console.error(
+    "[verify-next-tsconfig] Do not include server.ts in tsconfig.json — it imports backend/ (Prisma) and breaks"
+  );
+  console.error("  `next build` on Vercel where @prisma/client is not installed at the repo root.");
   process.exit(1);
 }
 
