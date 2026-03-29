@@ -18,7 +18,9 @@ import {
   downloadMyAccountExport,
   deleteMyAccount,
   setAuthToken,
+  ME_UPDATED_EVENT,
 } from "@/lib/api";
+import { AlertTriangle, Download, Laptop, ShieldCheck, Trash2 } from "lucide-react";
 import {
   normalizeUserPreferences,
   type NotificationPrefs,
@@ -42,6 +44,7 @@ export function SettingsNotificationsPanel() {
 
   const load = useCallback(async () => {
     if (!isApiConfigured()) {
+      setN(normalizeUserPreferences(null).notifications);
       setLoading(false);
       return;
     }
@@ -62,13 +65,19 @@ export function SettingsNotificationsPanel() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [load]);
 
+  useEffect(() => {
+    const onMe = () => void load();
+    window.addEventListener(ME_UPDATED_EVENT, onMe);
+    return () => window.removeEventListener(ME_UPDATED_EVENT, onMe);
+  }, [load]);
+
   const save = async () => {
     if (!n || !isApiConfigured()) return;
     setSaving(true);
     setError(null);
     try {
-      await patchMyProfile({ preferences: { notifications: n } });
-      await load();
+      const updated = await patchMyProfile({ preferences: { notifications: n } });
+      if (updated) setN(normalizeUserPreferences(updated.preferences).notifications);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -140,6 +149,7 @@ export function SettingsPrivacyPanel() {
 
   const load = useCallback(async () => {
     if (!isApiConfigured()) {
+      setP(normalizeUserPreferences(null).privacy);
       setLoading(false);
       return;
     }
@@ -160,13 +170,19 @@ export function SettingsPrivacyPanel() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [load]);
 
+  useEffect(() => {
+    const onMe = () => void load();
+    window.addEventListener(ME_UPDATED_EVENT, onMe);
+    return () => window.removeEventListener(ME_UPDATED_EVENT, onMe);
+  }, [load]);
+
   const save = async () => {
     if (!p || !isApiConfigured()) return;
     setSaving(true);
     setError(null);
     try {
-      await patchMyProfile({ preferences: { privacy: p } });
-      await load();
+      const updated = await patchMyProfile({ preferences: { privacy: p } });
+      if (updated) setP(normalizeUserPreferences(updated.preferences).privacy);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -241,6 +257,7 @@ export function SettingsSecurityPanel() {
 
   const load = useCallback(async () => {
     if (!isApiConfigured()) {
+      setS(normalizeUserPreferences(null).security);
       setLoading(false);
       return;
     }
@@ -261,13 +278,19 @@ export function SettingsSecurityPanel() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [load]);
 
+  useEffect(() => {
+    const onMe = () => void load();
+    window.addEventListener(ME_UPDATED_EVENT, onMe);
+    return () => window.removeEventListener(ME_UPDATED_EVENT, onMe);
+  }, [load]);
+
   const saveSecurity = async () => {
     if (!s || !isApiConfigured()) return;
     setSaving(true);
     setError(null);
     try {
-      await patchMyProfile({ preferences: { security: s } });
-      await load();
+      const updated = await patchMyProfile({ preferences: { security: s } });
+      if (updated) setS(normalizeUserPreferences(updated.preferences).security);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {

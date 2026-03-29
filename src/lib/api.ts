@@ -8,6 +8,9 @@ import type { UserPreferencesPatch } from "./userPreferences";
 
 const AUTH_TOKEN_KEY = "ranqly_token";
 
+/** Dispatched on `window` after PATCH /api/me succeeds so settings tabs can refetch. */
+export const ME_UPDATED_EVENT = "ranqly-me-updated";
+
 /** Full URL for API calls (browser may be relative). */
 export function apiUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
@@ -239,7 +242,11 @@ export async function uploadProfileAvatar(file: File): Promise<{ avatarUrl: stri
     const msg = await readFetchErrorMessage(res, `Upload failed (${res.status})`);
     throw new Error(msg);
   }
-  return (await res.json()) as { avatarUrl: string };
+  const out = (await res.json()) as { avatarUrl: string };
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ME_UPDATED_EVENT));
+  }
+  return out;
 }
 
 /** PATCH /api/me. Throws Error with server message on failure. */
@@ -259,7 +266,11 @@ export async function patchMyProfile(updates: {
     const msg = await readFetchErrorMessage(res, `Save failed (${res.status})`);
     throw new Error(msg);
   }
-  return (await res.json()) as AuthMeUser;
+  const user = (await res.json()) as AuthMeUser;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ME_UPDATED_EVENT));
+  }
+  return user;
 }
 
 /** GET /api/me/export — triggers JSON download in the browser. */

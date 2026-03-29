@@ -8,6 +8,7 @@ import {
   uploadProfileAvatar,
   isApiConfigured,
   publicAssetUrl,
+  ME_UPDATED_EVENT,
   type AuthMeUser,
 } from "@/lib/api";
 import { Button, Input, Avatar, Card, Separator, Badge } from "@/components/ui";
@@ -55,6 +56,12 @@ export function SettingsProfilePanel() {
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
+  }, [load]);
+
+  useEffect(() => {
+    const onMe = () => void load();
+    window.addEventListener(ME_UPDATED_EVENT, onMe);
+    return () => window.removeEventListener(ME_UPDATED_EVENT, onMe);
   }, [load]);
 
   const handleSaveProfile = async () => {
